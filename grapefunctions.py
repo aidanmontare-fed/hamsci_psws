@@ -15,6 +15,9 @@ from WWV_utility2 import time_string_to_decimals
 from Beacon import readheader
 
 from datetime import date
+import time
+
+
 
 def multiplot(plotTitle = ' Grape Data Plot'):
     '''
@@ -377,7 +380,7 @@ def multiplot(plotTitle = ' Grape Data Plot'):
 
 def keomaker(nodenum, start = [2018, 1, 1, 0, 0, 0], end = [date.today().year, date.today().month, date.today().day], 
              cfreq = 10e6, cadence = '5min', quant='freq'):
-    tic = time.time()                                                       # set up time clock to see how long this takes
+    # tic = time.time()                                                       # set up time clock to see how long this takes
     # First we select stations of interest:
     keolist = df[df['Node']==nodenum]         # selecting one node
 
@@ -446,6 +449,6 @@ def keomaker(nodenum, start = [2018, 1, 1, 0, 0, 0], end = [date.today().year, d
             expected_date = current_date
             print('Starting date list. ' + expected_date.strftime('%d %b %Y'))
 
-    toc = time.time() - tic                                     # See how much time has passed
-    print(str(toc) + ' seconds to complete this task.')         # Feedback to user
+    # toc = time.time() - tic                                     # See how much time has passed
+    # print(str(toc) + ' seconds to complete this task.')         # Feedback to user
     return keo
