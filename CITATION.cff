@@ -6,7 +6,10 @@ authors:
   orcid: "https://orcid.org/0000-0002-3816-1948"
 - family-names: "Montare"
   given-names: "Aidan"
-  orcid: "https://0000-0002-3682-9334"
+  orcid: "https://orcid.org/0000-0002-3682-9334"
+- family-names: "Benedict"
+  given-names: "Robert"
+  orcid: "https://orcid.org/0000-0002-9257-6976"
 title: "Plotting code for Grape V1 Doppler stations"
 version: 1.0.0
 doi: 10.5281/zenodo.6654901
