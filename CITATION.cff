@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Collins"
+  given-names: "Kristina"
+  orcid: "https://orcid.org/0000-0002-3816-1948"
+- family-names: "Montare"
+  given-names: "Aidan"
+  orcid: "https://orcid.org/0000-0002-3682-9334"
+- family-names: "Benedict"
+  given-names: "Robert"
+  orcid: "https://orcid.org/0000-0002-9257-6976"
+title: "Plotting code for Grape V1 Doppler stations"
+version: 1.0.0
+doi: 10.5281/zenodo.6654901
+date-released: 2022-06-16
+url: "https://github.com/KCollins/grape1plots"
