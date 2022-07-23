@@ -378,30 +378,53 @@ class GrapeData(object):
         meta['lon']    = lon
         self.meta      = meta
 
-    def process_data(self,resample_rate=datetime.timedelta(seconds=1),
-                 filter_order=6, Tc_min = 3.3333, btype='low'):
+    def process_data(self,profile='standard'):
 
-        print('Resampling data...')
-        self.resample_data(resample_rate=resample_rate,
-                          data_set_in='raw',data_set_out='resampled')
-        
-        # Convert Vpk to Power_dB
-        self.data['resampled']['df']['Power_dB'] = 20*np.log10( self.data['resampled']['df']['Vpk'])
-        
-        print('Filtering data...')
-        self.filter_data(N=filter_order,Tc_min=Tc_min,btype=btype)
+        tic_0 = datetime.datetime.now()
+        if profile == 'standard':
+            print('Processing data using "{!s}" profile...'.format(profile))
+            print('')
+            resample_rate = datetime.timedelta(seconds=1)
+            filter_order  = 6
+            Tc_min        = 3.3333
+            btype         = 'low'
+
+            print('Resampling data with {!s} second cadence...'.format(resample_rate.total_seconds()))
+            tic = datetime.datetime.now()
+            self.resample_data(resample_rate=resample_rate,
+                              data_set_in='raw',data_set_out='resampled')
+            toc = datetime.datetime.now()
+            print('  Resampling Time: {!s}'.format(toc-tic))
+            
+            # Convert Vpk to Power_dB
+            print('dB Conversion')
+            tic = datetime.datetime.now()
+            self.data['resampled']['df']['Power_dB'] = 20*np.log10( self.data['resampled']['df']['Vpk'])
+            toc = datetime.datetime.now()
+            print('  dB Conversion Time: {!s}'.format(toc-tic))
+            
+            print('Filtering data with {!s} minute low-pass Butterworth filter...'.format(Tc_min))
+            tic = datetime.datetime.now()
+            self.filter_data(N=filter_order,Tc_min=Tc_min,btype=btype)
+            toc = datetime.datetime.now()
+            print('  Filtering Time: {!s}'.format(toc-tic))
+
+        toc_0 = datetime.datetime.now()
+        print('')
+        print('Total Processing Time: {!s}'.format(toc_0-tic_0))
     
-
-    def resample_data(self,resample_rate,
+    def resample_data(self,resample_rate,on='UTC',
                           data_set_in='raw',data_set_out='resampled'):
         
-        df = self.data[data_set_in]['df']
-        jd   = [x.to_julian_date() for x in df['UTC']]
+        df   = self.data[data_set_in]['df']
+        cols = df.keys()
         
         # Create the list of datetimes that we want to resample to.
         # Find the start and end times of the array.
         sTime = df['UTC'].min()
         eTime = df['UTC'].max()
+
+        tzinfo= sTime.tzinfo
 
         # Break
         sYr  = sTime.year
@@ -410,7 +433,7 @@ class GrapeData(object):
         sHr  = sTime.hour
         sMin = sTime.minute
         sSec = sTime.second
-        resample_sTime = datetime.datetime(sYr,sMon,sDy,sHr,sMin,sSec)
+        resample_sTime = datetime.datetime(sYr,sMon,sDy,sHr,sMin,sSec,tzinfo=tzinfo)
 
         eYr  = eTime.year
         eMon = eTime.month
@@ -418,40 +441,46 @@ class GrapeData(object):
         eHr  = eTime.hour
         eMin = eTime.minute
         eSec = eTime.second
-        resample_eTime = datetime.datetime(eYr,eMon,eDy,eHr,eMin,eSec)
-        
-        rs_times = [resample_sTime]
-        while rs_times[-1] < resample_eTime:
-            rs_times.append(rs_times[-1]+resample_rate)
+        resample_eTime = datetime.datetime(eYr,eMon,eDy,eHr,eMin,eSec,tzinfo=tzinfo)
 
-        # Convert to Julian Date
-        rs_jd   = [x.to_julian_date() for x in pd.to_datetime(rs_times)]
-        
-        rs_dct = {'UTC':rs_times}
-        for param in df.keys():
-            if param == 'UTC':
-                continue
-                
-            fn      = interp1d(jd,df[param].values)
-            rs_vals = fn(rs_jd)
-            rs_dct[param] = rs_vals
-            
-        rs_df   = pd.DataFrame(rs_dct)
+        df          = df.set_index(on) # Need to make UTC column index for interpolation to work.
+        rs_df       = df.resample(resample_rate,origin=resample_sTime).interpolate(method='linear')
+        rs_df       = rs_df.copy()
+        rs_df[on]   = rs_df.index
+        rs_df.index = np.arange(len(rs_df)) 
+
+        # Put Columns back in original order.
+        rs_df       = rs_df[cols].copy()
         
         tmp          = {}
         tmp['df']    = rs_df
         tmp['label'] = 'Resampled Data (dt = {!s} s)'.format(resample_rate.total_seconds())
+        tmp['Ts']    = resample_rate.total_seconds()
         self.data[data_set_out] = tmp
-    
+
     def filter_data(self,N,Tc_min,btype,
                     data_set_in='resampled',data_set_out='filtered',
                     params=['Freq','Vpk','Power_dB']):
         
-        df   = self.data['resampled']['df'].copy()
-        fs   = 1./(float(np.unique(np.diff(df['UTC']))[0])*1e-9)        
+        df     = self.data[data_set_in]['df'].copy()
+
+        # Get sample rate of data set.
+        Ts     = self.data[data_set_in].get('Ts')
+        if Ts is None:
+            Ts_arr = np.unique(np.diff(df['UTC']))
+            if len(Ts_arr) != 1:
+                raise Exception("{!s} is not evenly sampled. Cannot apply filter.".format(data_set_in))
+            Ts   = (Ts_arr[0]).total_seconds()
+
+
+        # Convert sample rate to sampling frequency.
+        fs   = 1./Ts
+
         filt = Filter(N=N,Tc_min=Tc_min,btype=btype,fs=fs)
         
         for param in params:
+            if param not in df.keys():
+                continue
             df[param] = filt.filter_data(df[param])
         
         tmp          = {}
