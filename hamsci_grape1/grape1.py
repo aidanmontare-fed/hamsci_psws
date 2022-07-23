@@ -298,8 +298,6 @@ class Filter(object):
 
 class GrapeData(object):
     def __init__(self,node,freq,sTime=None,eTime=None,data_path='data',
-                 resample_rate=datetime.timedelta(seconds=1),
-                 filter_order=6, Tc_min = 3.3333, btype='low',
                  lat=None,lon=None,call_sign=None,
                  inventory=None,grape_nodes=None):
         
@@ -307,16 +305,6 @@ class GrapeData(object):
                  lat=lat,lon=lon,call_sign=call_sign,
                  inventory=inventory,grape_nodes=grape_nodes)
         
-        print('Resampling data...')
-        self.resample_data(resample_rate=resample_rate,
-                          data_set_in='raw',data_set_out='resampled')
-        
-        # Convert Vpk to Power_dB
-        self.data['resampled']['df']['Power_dB'] = 20*np.log10( self.data['resampled']['df']['Vpk'])
-        
-        print('Filtering data...')
-        self.filter_data(N=filter_order,Tc_min=Tc_min,btype=btype)
-    
     def __load_raw(self,node,freq,sTime,eTime,data_path,
                  lat,lon,call_sign,inventory,grape_nodes):
         
@@ -389,6 +377,20 @@ class GrapeData(object):
         meta['lat']    = lat
         meta['lon']    = lon
         self.meta      = meta
+
+    def process_data(self,resample_rate=datetime.timedelta(seconds=1),
+                 filter_order=6, Tc_min = 3.3333, btype='low'):
+
+        print('Resampling data...')
+        self.resample_data(resample_rate=resample_rate,
+                          data_set_in='raw',data_set_out='resampled')
+        
+        # Convert Vpk to Power_dB
+        self.data['resampled']['df']['Power_dB'] = 20*np.log10( self.data['resampled']['df']['Vpk'])
+        
+        print('Filtering data...')
+        self.filter_data(N=filter_order,Tc_min=Tc_min,btype=btype)
+    
 
     def resample_data(self,resample_rate,
                           data_set_in='raw',data_set_out='resampled'):
