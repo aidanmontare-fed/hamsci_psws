@@ -34,16 +34,13 @@ import plotly.graph_objects as go
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from Beacon import readheader                                     # local .py file
+from tqdm.auto import tqdm
+tqdm.pandas()
 
 from scipy.interpolate import interp1d
 from scipy import signal
 
 from suntime import Sun
-from WWV_utility2 import time_string_to_decimals                              # python file in this directory
-from Beacon import readheader
-
-from dateutil import parser 
 
 from . import locator
 from . import gen_lib as gl
@@ -310,12 +307,14 @@ class GrapeData(object):
                  lat=lat,lon=lon,call_sign=call_sign,
                  inventory=inventory,grape_nodes=grape_nodes)
         
-        self.__resample_data(resample_rate=resample_rate,
+        print('Resampling data...')
+        self.resample_data(resample_rate=resample_rate,
                           data_set_in='raw',data_set_out='resampled')
         
         # Convert Vpk to Power_dB
         self.data['resampled']['df']['Power_dB'] = 20*np.log10( self.data['resampled']['df']['Vpk'])
         
+        print('Filtering data...')
         self.filter_data(N=filter_order,Tc_min=Tc_min,btype=btype)
     
     def __load_raw(self,node,freq,sTime,eTime,data_path,
@@ -344,23 +343,24 @@ class GrapeData(object):
         # Select rows matching time range.
         tf    = np.logical_and(dft['Datetime'] >= sTime, dft['Datetime'] < eTime)
         dft   = dft[tf].copy()
+        dft   = dft.sort_values('Datetime')
 
         # Load data from every data file available for node/frequency/date range.
-        df_raw = None
-        for rinx,row in dft.iterrows():
+        df_raw = []
+        for rinx,row in tqdm(dft.iterrows(),total=len(dft),dynamic_ncols=True,desc='Loading Raw Data'):
             fname = row['Filename']
             fpath = os.path.join(data_path,fname)
+#            print(' --> {!s}'.format(fname))
 
             df_load = pd.read_csv(fpath, comment = '#', parse_dates=[0])
+            if len(df_load) == 0: continue
 
             # Remove the center frequency offset from the frequency column.
             df_load['Freq'] = df_load['Freq']-freq
-            if df_raw is None:
-                df_raw = df_load.copy()
-            else:
-                df_raw  = pd.concat([df_raw,df_load],ignore_index=True)
+            df_raw.append(df_load)
 
-            df_raw = df_raw.sort_values('UTC')
+        df_raw  = pd.concat(df_raw,ignore_index=True)
+        df_raw  = df_raw.sort_values('UTC')
      
         # Generate a label for each Node
         if (call_sign is None) and (grape_nodes is not None):
@@ -389,8 +389,8 @@ class GrapeData(object):
         meta['lat']    = lat
         meta['lon']    = lon
         self.meta      = meta
-    
-    def __resample_data(self,resample_rate,
+
+    def resample_data(self,resample_rate,
                           data_set_in='raw',data_set_out='resampled'):
         
         df = self.data[data_set_in]['df']
