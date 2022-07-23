@@ -2,11 +2,5 @@ matplotlib
 tqdm
 numpy
 pandas
-h5py
 cartopy
 ipdb
-library
-madrigalWeb
-netCDF4
-python_dateutil
-xarray
