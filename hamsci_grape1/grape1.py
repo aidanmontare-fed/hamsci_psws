@@ -35,7 +35,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from tqdm.auto import tqdm
-tqdm.pandas()
+tqdm.pandas(dynamic_ncols=True)
 
 from scipy.interpolate import interp1d
 from scipy import signal
@@ -381,9 +381,9 @@ class GrapeData(object):
     def process_data(self,profile='standard'):
 
         tic_0 = datetime.datetime.now()
+        print('Processing data using "{!s}" profile...'.format(profile))
+        print('')
         if profile == 'standard':
-            print('Processing data using "{!s}" profile...'.format(profile))
-            print('')
             resample_rate = datetime.timedelta(seconds=1)
             filter_order  = 6
             Tc_min        = 3.3333
@@ -409,11 +409,20 @@ class GrapeData(object):
             toc = datetime.datetime.now()
             print('  Filtering Time: {!s}'.format(toc-tic))
 
+        elif profile == '5min_mean':
+            resample_rate = datetime.timedelta(minutes=5)
+            print('Resampling data with {!s} minute cadence...'.format(resample_rate.total_seconds()/60.))
+            tic = datetime.datetime.now()
+            self.resample_data(resample_rate=resample_rate,method='mean',
+                              data_set_in='raw',data_set_out='resampled')
+            toc = datetime.datetime.now()
+            print('  Resampling Time: {!s}'.format(toc-tic))
+
         toc_0 = datetime.datetime.now()
         print('')
         print('Total Processing Time: {!s}'.format(toc_0-tic_0))
     
-    def resample_data(self,resample_rate,on='UTC',
+    def resample_data(self,resample_rate,on='UTC',method='linear_interp',
                           data_set_in='raw',data_set_out='resampled'):
         
         df   = self.data[data_set_in]['df']
@@ -444,7 +453,12 @@ class GrapeData(object):
         resample_eTime = datetime.datetime(eYr,eMon,eDy,eHr,eMin,eSec,tzinfo=tzinfo)
 
         df          = df.set_index(on) # Need to make UTC column index for interpolation to work.
-        rs_df       = df.resample(resample_rate,origin=resample_sTime).interpolate(method='linear')
+        rs_df       = df.resample(resample_rate,origin=resample_sTime)
+        if method == 'mean': 
+            rs_df = rs_df.mean()
+        else:
+            rs_df = rs_df.interpolate(method='linear')
+
         rs_df       = rs_df.copy()
         rs_df[on]   = rs_df.index
         rs_df.index = np.arange(len(rs_df)) 
