@@ -423,6 +423,13 @@ class GrapeData(object):
             self.data['resampled']['df']['Power_dB'] = 20*np.log10( self.data['resampled']['df']['Vpk'])
             toc = datetime.datetime.now()
             print('  dB Conversion Time: {!s}'.format(toc-tic))
+
+#            # Convert Vpk to Power_dB
+#            print('Compute Time-Date-Parameter (TDP) Matrix')
+#            tic = datetime.datetime.now()
+#            self.calculate_timeDateParameter_matrix('resampled','Freq')
+#            toc = datetime.datetime.now()
+#            print('  dB Conversion Time: {!s}'.format(toc-tic))
             
         toc_0 = datetime.datetime.now()
         print('')
