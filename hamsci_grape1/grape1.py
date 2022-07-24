@@ -268,15 +268,20 @@ class Filter(object):
 
         plt.tight_layout()
 
-class GrapeData(object):
-    def __init__(self,node,freq,sTime=None,eTime=None,data_path='data',
+class Grape1Data(object):
+    def __init__(self,node=None,freq=None,sTime=None,eTime=None,data_path='data',
                  lat=None,lon=None,call_sign=None,
                  solar_lat=None,solar_lon=None,
-                 inventory=None,grape_nodes=None):
-        
-        self.__load_raw(node,freq,sTime,eTime=eTime,data_path=data_path,
-                 lat=lat,lon=lon,call_sign=call_sign,solar_lat=solar_lat,solar_lon=solar_lon,
-                 inventory=inventory,grape_nodes=grape_nodes)
+                 inventory=None,grape_nodes=None,
+                 data=None,meta=None):
+
+        if data is None and meta is None:
+            self.__load_raw(node,freq,sTime,eTime=eTime,data_path=data_path,
+                     lat=lat,lon=lon,call_sign=call_sign,solar_lat=solar_lat,solar_lon=solar_lon,
+                     inventory=inventory,grape_nodes=grape_nodes)
+        else:
+            self.data = data
+            self.meta = meta
         
     def __load_raw(self,node,freq,sTime,eTime,data_path,
                  lat,lon,call_sign,solar_lat,solar_lon,inventory,grape_nodes):
@@ -424,7 +429,6 @@ class GrapeData(object):
             toc = datetime.datetime.now()
             print('  dB Conversion Time: {!s}'.format(toc-tic))
 
-#            # Convert Vpk to Power_dB
 #            print('Compute Time-Date-Parameter (TDP) Matrix')
 #            tic = datetime.datetime.now()
 #            self.calculate_timeDateParameter_matrix('resampled','Freq')
