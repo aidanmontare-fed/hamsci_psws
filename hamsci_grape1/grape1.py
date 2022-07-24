@@ -26,7 +26,6 @@ import pytz
 
 import numpy as np
 import pandas as pd
-import csv
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -40,9 +39,8 @@ tqdm.pandas(dynamic_ncols=True)
 from scipy.interpolate import interp1d
 from scipy import signal
 
-from suntime import Sun
-
 from . import locator
+from . import solar
 from . import gen_lib as gl
 
 prm_dict = {}
@@ -59,35 +57,9 @@ pkey = 'Power_dB'
 prm_dict[pkey] = {}
 prm_dict[pkey]['label'] = 'Received Power [dB]'
 
-def add_terminator(sTime,eTime,lat,lon,ax,color='0.7',alpha=0.3,**kw_args):
-    """
-    Shade the nighttime region on a time series plot.
-
-    sTime:   start time of time series plot in datetime.datetime format
-    eTime:   end time of time series plot in datetime.datetime format
-    lat:     latitude for solar terminator calculation
-    lon:     longitude for solar terminator calculation
-    ax:      matplotlib axis object to apply shading to.
-    color:   color of nighttime shading
-    alpha:   alpha of nighttime shading
-    kw_args: additional keywords passed to ax.axvspan
-    """
-    sun = Sun(float(lat), float(lon))
-    sDate = datetime.datetime(sTime.year,sTime.month,sTime.day)
-    eDate = datetime.datetime(eTime.year,eTime.month,eTime.day)
-
-    dates = [sDate]
-    while dates[-1] < eDate:
-        dates.append(dates[-1] + datetime.timedelta(days=1))
-
-    sunSetRise = []
-    for date in dates:    
-        ss = sun.get_sunset_time(date - datetime.timedelta(days=1))
-        sr = sun.get_sunrise_time(date)
-        sunSetRise.append( (sr, ss) )
-
-    for ss,sr in sunSetRise:                
-        ax.axvspan(ss,sr,color='0.7',alpha=0.3,**kw_args) 
+pkey = 'SLT'
+prm_dict[pkey] = {}
+prm_dict[pkey]['label'] = 'Solar Mean Time'
 
 class DataInventory(object):
     def __init__(self,data_path='data',suffix='.csv'):
@@ -299,14 +271,15 @@ class Filter(object):
 class GrapeData(object):
     def __init__(self,node,freq,sTime=None,eTime=None,data_path='data',
                  lat=None,lon=None,call_sign=None,
+                 solar_lat=None,solar_lon=None,
                  inventory=None,grape_nodes=None):
         
         self.__load_raw(node,freq,sTime,eTime=eTime,data_path=data_path,
-                 lat=lat,lon=lon,call_sign=call_sign,
+                 lat=lat,lon=lon,call_sign=call_sign,solar_lat=solar_lat,solar_lon=solar_lon,
                  inventory=inventory,grape_nodes=grape_nodes)
         
     def __load_raw(self,node,freq,sTime,eTime,data_path,
-                 lat,lon,call_sign,inventory,grape_nodes):
+                 lat,lon,call_sign,solar_lat,solar_lon,inventory,grape_nodes):
         
         if inventory is None:
             inventory = DataInventory(data_path=data_path)
@@ -364,7 +337,13 @@ class GrapeData(object):
         
         if (lon is None) and (grape_nodes is not None):
             lon = grape_nodes.nodes_df.loc[node,'Longitude']
-        
+
+        if solar_lat is None:
+            solar_lat = lat
+
+        if solar_lon is None:
+            solar_lon = lon
+
         # Store data into dictionaries.
         data = {}
         data['raw']          = {}
@@ -376,14 +355,22 @@ class GrapeData(object):
         meta['label']  = label
         meta['lat']    = lat
         meta['lon']    = lon
+        meta['solar_lat']    = solar_lat
+        meta['solar_lon']    = solar_lon
+
         self.meta      = meta
 
     def process_data(self,profile='standard'):
-
         tic_0 = datetime.datetime.now()
         print('Processing data using "{!s}" profile...'.format(profile))
         print('')
         if profile == 'standard':
+            print('Computing Solar Local Time on raw data...')
+            tic = datetime.datetime.now()
+            self.calculate_solar_time('raw')
+            toc = datetime.datetime.now()
+            print('  Solar Time Computation Time: {!s}'.format(toc-tic))
+        
             resample_rate = datetime.timedelta(seconds=1)
             filter_order  = 6
             Tc_min        = 3.3333
@@ -395,6 +382,12 @@ class GrapeData(object):
                               data_set_in='raw',data_set_out='resampled')
             toc = datetime.datetime.now()
             print('  Resampling Time: {!s}'.format(toc-tic))
+
+            print('Computing Solar Local Time on resampled...')
+            tic = datetime.datetime.now()
+            self.calculate_solar_time('resampled')
+            toc = datetime.datetime.now()
+            print('  Solar Time Computation Time: {!s}'.format(toc-tic))
             
             # Convert Vpk to Power_dB
             print('dB Conversion')
@@ -418,6 +411,19 @@ class GrapeData(object):
             toc = datetime.datetime.now()
             print('  Resampling Time: {!s}'.format(toc-tic))
 
+            print('Computing Solar Local Time on resampled...')
+            tic = datetime.datetime.now()
+            self.calculate_solar_time('resampled')
+            toc = datetime.datetime.now()
+            print('  Solar Time Computation Time: {!s}'.format(toc-tic))
+
+            # Convert Vpk to Power_dB
+            print('dB Conversion')
+            tic = datetime.datetime.now()
+            self.data['resampled']['df']['Power_dB'] = 20*np.log10( self.data['resampled']['df']['Vpk'])
+            toc = datetime.datetime.now()
+            print('  dB Conversion Time: {!s}'.format(toc-tic))
+            
         toc_0 = datetime.datetime.now()
         print('')
         print('Total Processing Time: {!s}'.format(toc_0-tic_0))
@@ -425,8 +431,7 @@ class GrapeData(object):
     def resample_data(self,resample_rate,on='UTC',method='linear_interp',
                           data_set_in='raw',data_set_out='resampled'):
         
-        df   = self.data[data_set_in]['df']
-        cols = df.keys()
+        df   = self.data[data_set_in]['df'].copy()
         
         # Create the list of datetimes that we want to resample to.
         # Find the start and end times of the array.
@@ -452,7 +457,13 @@ class GrapeData(object):
         eSec = eTime.second
         resample_eTime = datetime.datetime(eYr,eMon,eDy,eHr,eMin,eSec,tzinfo=tzinfo)
 
+        # Remove SLT column if it exists because it cannot be resampled.
+        if 'SLT' in df.keys():
+            df = df.drop('SLT',axis=1)
+
+        cols        = df.keys()
         df          = df.set_index(on) # Need to make UTC column index for interpolation to work.
+
         rs_df       = df.resample(resample_rate,origin=resample_sTime)
         if method == 'mean': 
             rs_df = rs_df.mean()
@@ -486,7 +497,6 @@ class GrapeData(object):
                 raise Exception("{!s} is not evenly sampled. Cannot apply filter.".format(data_set_in))
             Ts   = (Ts_arr[0]).total_seconds()
 
-
         # Convert sample rate to sampling frequency.
         fs   = 1./Ts
 
@@ -501,13 +511,45 @@ class GrapeData(object):
         tmp['df']    = df
         tmp['label'] = 'Butterworth Filtered Data\n(N={!s}, Tc={!s} min, Type: {!s})'.format(N, Tc_min, btype)
         self.data[data_set_out] = tmp                            
+
+    def calculate_solar_time(self,data_set,solar_lon=None):
+        if solar_lon is None:
+            solar_lon = self.meta.get('solar_lon')
+        else:
+            self.meta['solar_lon'] = solar_lon
+
+        df = self.data.get(data_set)['df']
+        df['SLT'] = df['UTC'].progress_apply(solar.solar_time,lon=solar_lon)
+
+        # Set columns so UTC and SLT lead.
+        keys = list(df.keys())
+        keys.remove('UTC')
+        keys.remove('SLT')
+        keys = ['UTC','SLT'] + keys
+        df   = df[keys]
+        self.data[data_set]['df'] = df
+
+    def show_datasets(self):
+        keys        = []
+        datasets    = []
+        for key,dct in self.data.items():
+            keys.append(key)
+
+            tmp  = {}
+            tmp['label'] = dct.get('label')
+
+            datasets.append(tmp)
+        
+        datasets = pd.DataFrame(datasets,index=keys)
+        return datasets
         
     def plot_timeSeries(self,data_sets=['raw'],
                         sTime=None,eTime=None,
                         xkey='UTC',params=['Freq','Vpk','Power_dB'],
+                        ylims = {},
                         plot_kws = [{'ls':'','marker':'.'},{}],
                         overlayTerminator=True,
-                        lat=None,lon=None,
+                        solar_lat=None,solar_lon=None,
                         fig_width=15,panel_height=6):
         
         data_sets = gl.get_iterable(data_sets)
@@ -539,12 +581,12 @@ class GrapeData(object):
             axs.append(ax)
 
             if overlayTerminator:
-                lat = self.meta.get('lat',lat)
-                lon = self.meta.get('lon',lon)
-                if (lat is not None) and (lon is not None):
-                    add_terminator(sTime,eTime,lat,lon,ax)
+                solar_lat = self.meta.get('solar_lat',solar_lat)
+                solar_lon = self.meta.get('solar_lon',solar_lon)
+                if (solar_lat is not None) and (solar_lon is not None):
+                    solar.add_terminator(sTime,eTime,solar_lat,solar_lon,ax,xkey=xkey)
                 else:
-                    print('Error: Need to provide lat and lon to overlay solar terminator.')
+                    print('Error: Need to provide solar_lat and solar_lon to overlay solar terminator.')
 
             ax.set_xlim(sTime,eTime)
             if plt_inx != nrows-1:
@@ -558,12 +600,14 @@ class GrapeData(object):
             yprmd  = prm_dict.get(param,{})
             ylabel = yprmd.get('label',yprmd)
             ax.set_ylabel(ylabel)
+            ylim = ylims.get(param,None)
+            if ylim is not None:
+                ax.set_ylim(ylim)
 
             if plt_inx == 0:
                 ax.set_title(self.meta.get('label',''))
             ax.set_title('({!s})'.format(letters[plt_inx]),loc='left')
            
-        
         for ds_inx,data_set in enumerate(data_sets):
             for plt_inx,param in enumerate(params):
                 ax = axs[plt_inx]
