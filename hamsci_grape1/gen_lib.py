@@ -1,6 +1,7 @@
 import os
 import shutil
 import collections
+import datetime
 
 def get_iterable(x):
     """
@@ -43,3 +44,18 @@ def adjust_axes(ax_0,ax_1):
     ax_1_pos    = list(ax_1.get_position().bounds)
     ax_0_pos[2] = ax_1_pos[2]
     ax_0.set_position(ax_0_pos)
+
+
+def datetime2date(dt):
+    """
+    Return a datetime object stripped of its time information.
+    """
+    date    = datetime.datetime(dt.year,dt.month,dt.day)
+    return date
+
+def decimal_hours(dt):
+    """
+    Return the decimal hours of a datetime object.
+    """
+    hours   = dt.hour + dt.minute/60. + dt.second/3600 + (dt.microsecond*1e-6)/3600.
+    return hours

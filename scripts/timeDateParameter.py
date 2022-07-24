@@ -57,10 +57,10 @@ if __name__ == '__main__':
 
     df = gd.data['resampled']['df']
 
-#    print('Compute Time-Date-Parameter (TDP) Matrix')
-#    tic = datetime.datetime.now()
-#    self.calculate_timeDateParameter_matrix('resampled','Freq')
-#    toc = datetime.datetime.now()
-#    print('  dB Conversion Time: {!s}'.format(toc-tic))
+    print('Compute Time-Date-Parameter (TDP) Array')
+    tic = datetime.datetime.now()
+    gd.calculate_timeDateParameter_array('resampled','Freq')
+    toc = datetime.datetime.now()
+    print('  Time-Date-Parameter Time: {!s}'.format(toc-tic))
 
     import ipdb; ipdb.set_trace()

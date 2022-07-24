@@ -26,6 +26,7 @@ import pytz
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -429,9 +430,9 @@ class Grape1Data(object):
             toc = datetime.datetime.now()
             print('  dB Conversion Time: {!s}'.format(toc-tic))
 
-#            print('Compute Time-Date-Parameter (TDP) Matrix')
+#            print('Compute Time-Date-Parameter (TDP) Array')
 #            tic = datetime.datetime.now()
-#            self.calculate_timeDateParameter_matrix('resampled','Freq')
+#            self.calculate_timeDateParameter_array('resampled','Freq')
 #            toc = datetime.datetime.now()
 #            print('  dB Conversion Time: {!s}'.format(toc-tic))
             
@@ -539,6 +540,53 @@ class Grape1Data(object):
         keys = ['UTC','SLT'] + keys
         df   = df[keys]
         self.data[data_set]['df'] = df
+
+    def calculate_timeDateParameter_array(self,data_set,param='Freq',xkey='SLT'):
+        df          = self.data[data_set]['df']
+        time_vec    = df[xkey]
+
+        # Calculate bin size.
+        dt_hr       = (time_vec.diff().mean().total_seconds())/3600.
+        hour_bins   = np.arange(0,24+dt_hr,dt_hr)
+
+        print('Splitting {!s} into dates...'.format(xkey))
+        dates       = time_vec.progress_apply(gl.datetime2date)
+        date_bins   = list(set(dates))
+        date_bins.sort()
+        date_bins   = np.array(date_bins)
+
+        print('Splitting {!s} into decimal hours...'.format(xkey))
+        hours       = time_vec.progress_apply(gl.decimal_hours)
+
+        # Rearrange Data into a 2D Array
+        print('Filling timeDateParameter Array...')
+        tdp_arr = np.zeros( (len(date_bins), len(hour_bins)) )*np.nan
+        for rinx, row in tqdm(df.iterrows(),total=len(df),dynamic_ncols=True):
+            val         = row[param]
+            date_inx    = np.where(dates.loc[rinx] == date_bins)[0][0]
+            t_bin_inx   = np.digitize(hours.loc[rinx],hour_bins)
+
+            tdp_arr[date_inx,t_bin_inx] = val
+
+        # Put array into xarray.
+        xr_xkey = '{!s}_Date'.format(xkey)
+        xr_ykey = '{!s}_Hour'.format(xkey)
+
+        crds    = {}
+        crds[xr_xkey]	= date_bins
+        crds[xr_ykey]   = hour_bins
+        tdp_da          = xr.DataArray(tdp_arr,crds,dims=[xr_xkey,xr_ykey])
+
+        tdp_key         = self.get_tdp_key(param,xkey)
+
+        # Save back to object
+        self.data[data_set][tdp_key] = tdp_da
+
+        return tdp_da
+
+    def get_tdp_key(self,param,xkey):
+        tdp_key = 'tdp_{!s}_{!s}'.format(param,xkey)
+        return tdp_key
 
     def show_datasets(self):
         keys        = []
