@@ -49,6 +49,9 @@ prm_dict = {}
 pkey = 'Freq'
 prm_dict[pkey] = {}
 prm_dict[pkey]['label'] = 'Doppler Shift [Hz]'
+prm_dict[pkey]['vmin']  = -0.5
+prm_dict[pkey]['vmax']  =  0.5
+prm_dict[pkey]['cmap']  = 'bwr_r'
 
 pkey = 'Vpk'
 prm_dict[pkey] = {}
@@ -61,6 +64,22 @@ prm_dict[pkey]['label'] = 'Received Power [dB]'
 pkey = 'SLT'
 prm_dict[pkey] = {}
 prm_dict[pkey]['label'] = 'Solar Mean Time'
+
+pkey = 'SLT_Hour'
+prm_dict[pkey] = {}
+prm_dict[pkey]['label'] = 'Solar Mean Time [Hours]'
+
+pkey = 'SLT_Date'
+prm_dict[pkey] = {}
+prm_dict[pkey]['label'] = 'Date'
+
+pkey = 'UTC_Hour'
+prm_dict[pkey] = {}
+prm_dict[pkey]['label'] = 'UTC [Hours]'
+
+pkey = 'UTC_Date'
+prm_dict[pkey] = {}
+prm_dict[pkey]['label'] = 'Date'
 
 class DataInventory(object):
     def __init__(self,data_path='data',suffix='.csv'):

@@ -23,11 +23,11 @@ def make_dir(path,clear=False):
     """
     if clear:
         try:
-            shutil.rmtree(value)
+            shutil.rmtree(path)
         except:
             pass
     try:
-        os.makedirs(value)
+        os.makedirs(path)
     except:
         pass
 
