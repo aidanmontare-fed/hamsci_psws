@@ -81,8 +81,17 @@ pkey = 'UTC_Date'
 prm_dict[pkey] = {}
 prm_dict[pkey]['label'] = 'Date'
 
+pkey = 'lon'
+prm_dict[pkey] = {}
+prm_dict[pkey]['label'] = 'Longitude'
+
+pkey = 'lat'
+prm_dict[pkey] = {}
+prm_dict[pkey]['label'] = 'Latitude'
+
 class DataInventory(object):
-    def __init__(self,data_path='data',suffix='.csv'):
+    def __init__(self,nodes=None,G=None,freq=None,sTime=None,eTime=None,
+                    data_path='data',suffix='.csv'):
         """
         Create an inventory of availble grape1 data in the data_path.
         Inventory will be dataframe df attached to DataInventory object.
@@ -121,15 +130,58 @@ class DataInventory(object):
         df.loc[df['Frequency'] == 'CHU7',    'Frequency'] = 7850e3
         df.loc[df['Frequency'] == 'CHU14',   'Frequency'] = 14.67e6
         df.loc[df['Frequency'] == 'Unknown', 'Frequency'] = 0
+
+        # Sort by Datetime
+        df = df.sort_values(['Node','Frequency','Datetime']).copy()
         
         # Save dataframe to object
+        self.df_unfiltered = df
+
+        df = self.filter(nodes=nodes,G=G,freq=freq,sTime=sTime,eTime=eTime)
+
+    def filter(self,nodes=None,G=None,freq=None,sTime=None,eTime=None):
+        """
+        Filter data by parameters.
+        """
+
+        df = self.df_unfiltered.copy()
+
+        if nodes is not None:
+            nodes   = gl.get_iterable(nodes)
+            tf      = df['Node'].isin(nodes)
+            df      = df[tf].copy()
+
+        if G is not None:
+            G       = gl.get_iterable(G)
+            tf      = df['G'].isin(G)
+            df      = df[tf].copy()
+
+        if freq is not None:
+            freq    = gl.get_iterable(freq)
+            tf      = df['Frequency'].isin(freq)
+            df      = df[tf].copy()
+
+        if sTime is not None:
+            tf      = df['Datetime'] >= sTime
+            df      = df[tf].copy()
+
+        if eTime is not None:
+            tf      = df['Datetime'] < eTime
+            df      = df[tf].copy()
+
         self.df = df
-        
+
         # List of logged nodes during the period of interest, for sorting:
         logged_nodes = df["Node"].unique().tolist()
         logged_nodes.sort()
-        
         self.logged_nodes = logged_nodes
+
+        return df
+
+    def get_nodes(self):
+        nodes = self.df['Node'].unique().tolist()
+        return nodes
+
     
     def plot_inventory(self,html_out='inventory.html'):
         """
@@ -511,6 +563,9 @@ class Grape1Data(object):
 
         cols        = df.keys()
         df          = df.set_index(on) # Need to make UTC column index for interpolation to work.
+        df          = df.drop_duplicates()
+
+        df          = df[~df.index.duplicated(keep='first')] # Make sure there are no duplicated indices.
 
         rs_df       = df.resample(resample_rate,origin=resample_sTime)
         if method == 'mean': 
@@ -723,7 +778,7 @@ class Grape1Data(object):
 
         return {'fig':fig}
 
-    def plot_timeDateParameter_array(self,data_set,params=['Freq','Power_dB'],xkey='LMT',
+    def plot_timeDateParameter(self,data_set,params=['Freq','Power_dB'],xkey='LMT',
             fig_width=15,panel_height=6):
 
         # Start plotting
@@ -773,4 +828,118 @@ class Grape1Data(object):
 
             fig.tight_layout()
         
+        return {'fig':fig}
+
+class GrapeMultiplot(object):
+    def __init__(self,gds):
+        """
+        gds: List of Grape1Data objects.
+        """
+
+        self.gds = gds
+
+    def multiplot(self,data_set,params=['Freq','Power_dB'],
+                    xkey='UTC',
+                    sTime=None,eTime=None,
+                    color_dct=None,legend=True,
+                    solar_lat=None,solar_lon=None,
+                    fig_width=22,panel_height=8):
+
+        data = self.gds
+
+        if color_dct is not None:
+            ckey = color_dct.get('ckey')
+
+            # Sort data by ckey.
+            vals = [x.meta[ckey] for x in data]
+            srt  = np.argsort(vals)[::-1]
+            data = [data[x] for x in srt]
+
+            cmap = color_dct.get('cmap','viridis')
+            vmin = color_dct.get('vmin',np.min(vals))
+            vmax = color_dct.get('vmax',np.max(vals))
+
+            norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+            mpbl = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+	    
+        ncols = 1
+        nrows = len(params)
+
+        figsize = (fig_width, nrows*panel_height)
+        fig     = plt.figure(figsize=figsize)
+
+        axs = []
+        params = gl.get_iterable(params)
+        for plt_inx,(param) in enumerate(params):
+            ax   = fig.add_subplot(nrows, ncols, plt_inx+1)
+            axs.append(ax)
+
+            xx_xtrm   = [] # Keep track of time extrema.
+            abs_maxes = [] # Keep track of absolute value maxima
+            for gd in data:
+                df_data = gd.data[data_set]['df']
+                label   = gd.meta['label']
+
+                plt_kw  = {}
+
+                xx      = df_data[xkey]
+                yy      = df_data[param]
+
+                xx_xtrm.append(np.min(xx))
+                xx_xtrm.append(np.max(xx))
+
+                abs_maxes.append(np.nanmax(np.abs(yy)))
+                if color_dct is not None:
+                    val     = gd.meta[ckey]
+                    plt_kw['color'] = mpbl.cmap(mpbl.norm(val))
+
+                ax.plot(xx,yy,label=label,**plt_kw)
+
+            if sTime is None:
+                sTime = min(xx_xtrm)
+
+            if eTime is None:
+                eTime = max(xx_xtrm)
+
+            ax.set_xlim(sTime,eTime)
+
+            if param == 'Freq':
+                abs_max = np.max(abs_maxes)
+                ax.set_ylim(-abs_max*1.05,abs_max*1.05)
+
+            legend_bbox_to_anchor = (1.04,1)
+            if color_dct is not None:
+                cb_prmd = prm_dict.get(ckey,{})
+                clabel  = cb_prmd.get('label',ckey)
+                fig.colorbar(mpbl,ax=ax,label=clabel)
+                legend_bbox_to_anchor = (1.2,1)
+
+            if legend:
+                ax.legend(bbox_to_anchor=legend_bbox_to_anchor, loc="upper left", borderaxespad=0)
+
+            prmd    = prm_dict.get(param,{})
+            ylbl    = prmd.get('label',param)
+            ax.set_ylabel(ylbl)
+
+            ax.set_title('({!s})'.format(letters[plt_inx]),loc='left')
+
+            if plt_inx == 0:
+                date_str = sTime.strftime('%Y %b %d %H:%M UT') + ' - ' + sTime.strftime('%Y %b %d %H:%M UT')            
+                title = []
+                title.append('HamSCI Grape PSWS Observations')
+                title.append(date_str)
+                ax.set_title('\n'.join(title))
+
+            if plt_inx != nrows-1:
+                ax.set_xticklabels('')
+            else:
+                xprmd   = prm_dict.get(xkey,{})
+                xlbl    = xprmd.get('label',xkey)
+                ax.set_xlabel(xlbl)
+
+            # Add solar terminator
+            if (solar_lat is not None) and (solar_lon is not None):
+                solar.add_terminator(sTime,eTime,solar_lat,solar_lon,ax,xkey=xkey)
+
+        fig.tight_layout()
         return {'fig':fig}

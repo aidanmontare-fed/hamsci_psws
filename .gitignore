@@ -6,3 +6,4 @@ Mplot/
 *.pyc
 *.html
 *.p
+output/

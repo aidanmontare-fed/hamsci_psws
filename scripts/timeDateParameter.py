@@ -9,10 +9,9 @@ from matplotlib import pyplot as plt
 
 import pickle
 
-from hamsci_grape1 import gen_lib as gl
-from hamsci_grape1 import grape1
+from hamsci_psws import gen_lib as gl
+from hamsci_psws import grape1
 prm_dict = grape1.prm_dict
-
 
 mpl.rcParams['font.size']        = 16
 mpl.rcParams['font.weight']      = 'bold'
@@ -24,7 +23,7 @@ mpl.rcParams['figure.figsize']   = np.array([15, 8])
 mpl.rcParams['axes.xmargin']     = 0
 
 if __name__ == '__main__':
-    path  = 'output'
+    path  = os.path.join('output','timeDateParameter')
     gl.make_dir(path,clear=True)
 
     node            = 7
@@ -66,7 +65,7 @@ if __name__ == '__main__':
     xkeys  = ['LMT','UTC']
     for xkey in xkeys:
         print('Plotting: {!s}'.format(xkey))
-        ret     = gd.plot_timeDateParameter_array('resampled',xkey=xkey)
+        ret     = gd.plot_timeDateParameter('resampled',xkey=xkey)
         fig     = ret['fig']
         fname   = 'tdp_{!s}.png'.format(xkey)
         fpath   = os.path.join(path,fname)
