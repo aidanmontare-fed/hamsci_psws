@@ -25,7 +25,7 @@ def add_terminator(sTime,eTime,lat,lon,ax,color='0.7',alpha=0.3,xkey='UTC',**kw_
     alpha:   alpha of nighttime shading
     kw_args: additional keywords passed to ax.axvspan
     """
-    if xkey == 'SLT':
+    if xkey == 'LMT':
         sTime = utc_time(sTime,lon)
         eTime = utc_time(eTime,lon)
 
@@ -44,7 +44,7 @@ def add_terminator(sTime,eTime,lat,lon,ax,color='0.7',alpha=0.3,xkey='UTC',**kw_
         sunSetRise.append( (sr, ss) )
 
     for ss,sr in sunSetRise:                
-        if xkey == 'SLT':
+        if xkey == 'LMT':
             ss = solar_time(ss,lon)
             sr = solar_time(sr,lon)
         ax.axvspan(ss,sr,color=color,alpha=alpha,**kw_args) 

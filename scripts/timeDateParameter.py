@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     df = gd.data['resampled']['df']
 
-    xkeys  = ['SLT','UTC']
+    xkeys  = ['LMT','UTC']
     for xkey in xkeys:
         print('Plotting: {!s}'.format(xkey))
         ret     = gd.plot_timeDateParameter_array('resampled',xkey=xkey)

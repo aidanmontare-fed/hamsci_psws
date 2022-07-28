@@ -61,15 +61,15 @@ pkey = 'Power_dB'
 prm_dict[pkey] = {}
 prm_dict[pkey]['label'] = 'Received Power [dB]'
 
-pkey = 'SLT'
+pkey = 'LMT'
 prm_dict[pkey] = {}
-prm_dict[pkey]['label'] = 'Solar Mean Time'
+prm_dict[pkey]['label'] = 'Mean Solar Time'
 
-pkey = 'SLT_Hour'
+pkey = 'LMT_Hour'
 prm_dict[pkey] = {}
 prm_dict[pkey]['label'] = 'Solar Mean Time [Hours]'
 
-pkey = 'SLT_Date'
+pkey = 'LMT_Date'
 prm_dict[pkey] = {}
 prm_dict[pkey]['label'] = 'Date'
 
@@ -430,7 +430,7 @@ class Grape1Data(object):
         elif profile == '5min_mean':
             data_set_in = 'raw'
             data_set    = 'resampled'
-            xkeys       = ['SLT','UTC']
+            xkeys       = ['LMT','UTC']
             params      = ['Freq','Power_dB']
 
             resample_rate = datetime.timedelta(minutes=5)
@@ -499,9 +499,9 @@ class Grape1Data(object):
         eSec = eTime.second
         resample_eTime = datetime.datetime(eYr,eMon,eDy,eHr,eMin,eSec,tzinfo=tzinfo)
 
-        # Remove SLT column if it exists because it cannot be resampled.
-        if 'SLT' in df.keys():
-            df = df.drop('SLT',axis=1)
+        # Remove LMT column if it exists because it cannot be resampled.
+        if 'LMT' in df.keys():
+            df = df.drop('LMT',axis=1)
 
         cols        = df.keys()
         df          = df.set_index(on) # Need to make UTC column index for interpolation to work.
@@ -561,17 +561,17 @@ class Grape1Data(object):
             self.meta['solar_lon'] = solar_lon
 
         df = self.data.get(data_set)['df']
-        df['SLT'] = df['UTC'].progress_apply(solar.solar_time,lon=solar_lon)
+        df['LMT'] = df['UTC'].progress_apply(solar.solar_time,lon=solar_lon)
 
-        # Set columns so UTC and SLT lead.
+        # Set columns so UTC and LMT lead.
         keys = list(df.keys())
         keys.remove('UTC')
-        keys.remove('SLT')
-        keys = ['UTC','SLT'] + keys
+        keys.remove('LMT')
+        keys = ['UTC','LMT'] + keys
         df   = df[keys]
         self.data[data_set]['df'] = df
 
-    def calculate_timeDateParameter_array(self,data_set,param='Freq',xkey='SLT'):
+    def calculate_timeDateParameter_array(self,data_set,param='Freq',xkey='LMT'):
         df          = self.data[data_set]['df']
         time_vec    = df[xkey]
 
@@ -717,7 +717,7 @@ class Grape1Data(object):
 
         return {'fig':fig}
 
-    def plot_timeDateParameter_array(self,data_set,params=['Freq','Power_dB'],xkey='SLT',
+    def plot_timeDateParameter_array(self,data_set,params=['Freq','Power_dB'],xkey='LMT',
             fig_width=15,panel_height=6):
 
         # Start plotting
