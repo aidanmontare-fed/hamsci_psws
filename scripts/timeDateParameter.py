@@ -37,7 +37,7 @@ if __name__ == '__main__':
     eTime           = None
 
     cache_file      = 'gd.p'
-    recalc_cache    = False
+    recalc_cache    = False 
 
     inventory = grape1.DataInventory()
     nodes     = grape1.GrapeNodes(logged_nodes=inventory.logged_nodes)
@@ -64,46 +64,12 @@ if __name__ == '__main__':
     df = gd.data['resampled']['df']
 
     xkeys  = ['SLT','UTC']
-    params = ['Freq','Power_dB']
-
     for xkey in xkeys:
-        for param in params:
-            print('Processing: {!s} - {!s}'.format(xkey,param))
-
-            print('Compute Time-Date-Parameter (TDP) Array')
-            tic = datetime.datetime.now()
-            tdp = gd.calculate_timeDateParameter_array('resampled',param,xkey=xkey)
-            toc = datetime.datetime.now()
-            print('  Time-Date-Parameter Time: {!s}'.format(toc-tic))
-
-            fig = plt.figure(figsize=(15,10))
-            ax  = fig.add_subplot(111)
-
-            xr_xkey = '{!s}_Date'.format(xkey)
-            xprmd   = prm_dict.get(xr_xkey)
-            xlabel  = xprmd.get('label')
-
-            xr_ykey = '{!s}_Hour'.format(xkey)
-            yprmd   = prm_dict.get(xr_ykey)
-            ylabel  = yprmd.get('label')
-
-            prmd = prm_dict.get(param)
-            vmin = prmd.get('vmin')
-            vmax = prmd.get('vmax')
-            cmap = prmd.get('cmap')
-            plbl = prmd.get('label')
-
-            cbar_kwargs = {}
-            cbar_kwargs['label'] = plbl
-
-            ret  = tdp.plot.pcolormesh(xr_xkey,xr_ykey,vmin=vmin,vmax=vmax,cmap=cmap,
-                    cbar_kwargs=cbar_kwargs)
-            ax.set_xlabel(xlabel)
-            ax.set_ylabel(ylabel)
-
-            fig.tight_layout()
-            fname = 'tdp_{!s}_{!s}.png'.format(param,xkey)
-            fpath = os.path.join(path,fname)
-            fig.savefig(fpath,bbox_inches='tight')
+        print('Plotting: {!s}'.format(xkey))
+        ret     = gd.plot_timeDateParameter_array('resampled',xkey=xkey)
+        fig     = ret['fig']
+        fname   = 'tdp_{!s}.png'.format(xkey)
+        fpath   = os.path.join(path,fname)
+        fig.savefig(fpath,bbox_inches='tight')
 
     import ipdb; ipdb.set_trace()

@@ -428,33 +428,44 @@ class Grape1Data(object):
             print('  Filtering Time: {!s}'.format(toc-tic))
 
         elif profile == '5min_mean':
+            data_set_in = 'raw'
+            data_set    = 'resampled'
+            xkeys       = ['SLT','UTC']
+            params      = ['Freq','Power_dB']
+
             resample_rate = datetime.timedelta(minutes=5)
             print('Resampling data with {!s} minute cadence...'.format(resample_rate.total_seconds()/60.))
             tic = datetime.datetime.now()
             self.resample_data(resample_rate=resample_rate,method='mean',
-                              data_set_in='raw',data_set_out='resampled')
+                              data_set_in=data_set_in,data_set_out=data_set)
             toc = datetime.datetime.now()
             print('  Resampling Time: {!s}'.format(toc-tic))
 
             print('Computing Solar Local Time on resampled...')
             tic = datetime.datetime.now()
-            self.calculate_solar_time('resampled')
+            self.calculate_solar_time(data_set)
             toc = datetime.datetime.now()
             print('  Solar Time Computation Time: {!s}'.format(toc-tic))
 
             # Convert Vpk to Power_dB
             print('dB Conversion')
             tic = datetime.datetime.now()
-            self.data['resampled']['df']['Power_dB'] = 20*np.log10( self.data['resampled']['df']['Vpk'])
+            self.data[data_set]['df']['Power_dB'] = 20*np.log10( self.data[data_set]['df']['Vpk'])
             toc = datetime.datetime.now()
             print('  dB Conversion Time: {!s}'.format(toc-tic))
 
-#            print('Compute Time-Date-Parameter (TDP) Array')
-#            tic = datetime.datetime.now()
-#            self.calculate_timeDateParameter_array('resampled','Freq')
-#            toc = datetime.datetime.now()
-#            print('  dB Conversion Time: {!s}'.format(toc-tic))
-            
+            for xkey in xkeys:
+                for param in params:
+                    print('Processing: {!s} - {!s}'.format(xkey,param))
+                    print('Compute Time-Date-Parameter (TDP) Array')
+                    tic = datetime.datetime.now()
+                    tdp = self.calculate_timeDateParameter_array(data_set,param,xkey=xkey)
+                    toc = datetime.datetime.now()
+                    print('  Time-Date-Parameter Time: {!s}'.format(toc-tic))
+
+                    tdp_key = self.get_tdp_key(param,xkey)
+                    self.data[data_set][tdp_key] = tdp
+
         toc_0 = datetime.datetime.now()
         print('')
         print('Total Processing Time: {!s}'.format(toc_0-tic_0))
@@ -703,5 +714,57 @@ class Grape1Data(object):
             ax.legend(loc='upper right',fontsize='small')
         
         fig.tight_layout()
+
+        return {'fig':fig}
+
+    def plot_timeDateParameter_array(self,data_set,params=['Freq','Power_dB'],xkey='SLT',
+            fig_width=15,panel_height=6):
+
+        # Start plotting
+        ncols   = 1
+        nrows   = len(params)
+        figsize = (fig_width, nrows*panel_height)
+        
+        fig = plt.figure(figsize=figsize)       
+        axs = []
+        for plt_inx,param in enumerate(params):
+            tdp_key = self.get_tdp_key(param,xkey)
+            tdp = self.data[data_set][tdp_key]
+
+            ax  = fig.add_subplot(nrows,ncols,plt_inx+1)
+            axs.append(ax)
+
+            xr_xkey = '{!s}_Date'.format(xkey)
+            xprmd   = prm_dict.get(xr_xkey)
+            xlabel  = xprmd.get('label')
+
+            xr_ykey = '{!s}_Hour'.format(xkey)
+            yprmd   = prm_dict.get(xr_ykey)
+            ylabel  = yprmd.get('label')
+
+            prmd = prm_dict.get(param)
+            vmin = prmd.get('vmin')
+            vmax = prmd.get('vmax')
+            cmap = prmd.get('cmap')
+            plbl = prmd.get('label')
+
+            cbar_kwargs = {}
+            cbar_kwargs['label'] = plbl
+
+            ret  = tdp.plot.pcolormesh(xr_xkey,xr_ykey,vmin=vmin,vmax=vmax,cmap=cmap,
+                    cbar_kwargs=cbar_kwargs,ax=ax)
+            ax.set_ylabel(ylabel)
+
+            if plt_inx != nrows-1:
+#                ax.set_xticklabels('')
+                ax.set_xlabel('')
+            else:
+                ax.set_xlabel(xlabel)
+
+            if plt_inx == 0:
+                ax.set_title(self.meta.get('label',''))
+            ax.set_title('({!s})'.format(letters[plt_inx]),loc='left')
+
+            fig.tight_layout()
         
         return {'fig':fig}
