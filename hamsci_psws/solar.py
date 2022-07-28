@@ -3,9 +3,9 @@ import pytz
 from suntime import Sun
 
 def solar_time(datetime_utc,lon):
-    slt = datetime_utc + datetime.timedelta(hours=(lon/15.))
-    slt = slt.replace(tzinfo=None)
-    return slt
+    lmt = datetime_utc + datetime.timedelta(hours=(lon/15.))
+    lmt = lmt.replace(tzinfo=None)
+    return lmt
 
 def utc_time(datetime_slt,lon):
     utc = datetime_slt - datetime.timedelta(hours=(lon/15.))
@@ -41,11 +41,14 @@ def add_terminator(sTime,eTime,lat,lon,ax,color='0.7',alpha=0.3,xkey='UTC',**kw_
     for date in dates:    
         ss = sun.get_sunset_time(date - datetime.timedelta(days=1))
         sr = sun.get_sunrise_time(date)
-        sunSetRise.append( (sr, ss) )
+        sunSetRise.append( (ss, sr) )
 
+    plotted_times = []
     for ss,sr in sunSetRise:                
         if xkey == 'LMT':
             ss = solar_time(ss,lon)
             sr = solar_time(sr,lon)
         ax.axvspan(ss,sr,color=color,alpha=alpha,**kw_args) 
+        plotted_times.append( (ss, sr) )
+    import ipdb; ipdb.set_trace()
 
