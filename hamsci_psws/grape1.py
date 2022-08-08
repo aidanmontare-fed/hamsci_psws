@@ -147,10 +147,15 @@ class DataInventory(object):
 
         nodes:  node numbers (int or list of ints)
         G:      type of receiving station (string or list of strings)
-                    'G1':       Grape 1
-                    'Grape1':   Grape 1
-                    'C1':
-                    'S1':
+		    G – Grape (Low Cost Platform)
+			1 – Generation 1 (has 1 receiver)
+			2 – Generation 2 (has 4 receivers)
+		    T – Tangerine (High Performance Platform)
+			1 – Generation 1
+			2 – Generation 2
+		    S – Standard / Commercial (Amateur) Hardware (details in Metadata)
+		    U – User Custom Hardware (details in Metadata)
+		    N – No radio collectiopn – instrument(s) only – defaults to N0
         freq:   frequency in Hz (float or list of floats)
         sTime:  UTC starting time of observations (datetime object)
         eTime:  UTC ending time of observations (datetime object)
