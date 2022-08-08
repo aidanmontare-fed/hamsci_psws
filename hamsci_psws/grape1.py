@@ -132,7 +132,7 @@ class DataInventory(object):
         df.loc[df['Frequency'] == 'Unknown', 'Frequency'] = 0
 
         # Sort by Datetime
-        df = df.sort_values(['Node','Frequency','Datetime']).copy()
+        df = df.sort_values(['Datetime','Frequency','Node']).copy()
         
         # Save dataframe to object
         self.df_unfiltered = df
@@ -141,7 +141,19 @@ class DataInventory(object):
 
     def filter(self,nodes=None,G=None,freq=None,sTime=None,eTime=None):
         """
-        Filter data by parameters.
+        Filter data by parameters. The filtered results will be returned
+        and stored in self.df. Unfiltered results will always be available
+        in self.df_unfiltered.
+
+        nodes:  node numbers (int or list of ints)
+        G:      type of receiving station (string or list of strings)
+                    'G1':       Grape 1
+                    'Grape1':   Grape 1
+                    'C1':
+                    'S1':
+        freq:   frequency in Hz (float or list of floats)
+        sTime:  UTC starting time of observations (datetime object)
+        eTime:  UTC ending time of observations (datetime object)
         """
 
         df = self.df_unfiltered.copy()
@@ -162,10 +174,18 @@ class DataInventory(object):
             df      = df[tf].copy()
 
         if sTime is not None:
+            # Return files that start a day early,
+            # otherwise you may not get all of the files you need.
+            sTime  -= datetime.timedelta(days=1)   
+
             tf      = df['Datetime'] >= sTime
             df      = df[tf].copy()
 
         if eTime is not None:
+            # Return files that end a day after eTime,
+            # otherwise you may not get all of the files you need.
+            eTime  += datetime.timedelta(days=1)   
+
             tf      = df['Datetime'] < eTime
             df      = df[tf].copy()
 
@@ -179,9 +199,11 @@ class DataInventory(object):
         return df
 
     def get_nodes(self):
+        """
+        Return a list of all of the unique node numbers in the inventory.
+        """
         nodes = self.df['Node'].unique().tolist()
         return nodes
-
     
     def plot_inventory(self,html_out='inventory.html'):
         """
@@ -295,7 +317,14 @@ class Filter(object):
 
         data: Vector of data to be filtered.
         """
-        return signal.filtfilt(self.b,self.a,data)
+        try:
+            filtered = signal.filtfilt(self.b,self.a,data)
+        except Exception as err:
+            print('Filter error... returning NaNs.')
+            print('   Error: {!s}'.format(err))
+            filtered = data*np.nan
+
+        return filtered
     
     def plotResponse(self):
         """
@@ -377,9 +406,15 @@ class Grape1Data(object):
 
         if eTime is None:
             eTime = max(dft['Datetime'])        
-        
+
+        # Expand time range of loading files, or you might miss
+        # files you need. Strict time limits are applied later in this
+        # routine after the data has been loaded.
+        sTime_load  = sTime - datetime.timedelta(days=1)
+        eTime_load  = eTime + datetime.timedelta(days=1)
+
         # Select rows matching time range.
-        tf    = np.logical_and(dft['Datetime'] >= sTime, dft['Datetime'] < eTime)
+        tf    = np.logical_and(dft['Datetime'] >= sTime_load, dft['Datetime'] < eTime_load)
         dft   = dft[tf].copy()
         dft   = dft.sort_values('Datetime')
 
@@ -388,7 +423,6 @@ class Grape1Data(object):
         for rinx,row in tqdm(dft.iterrows(),total=len(dft),dynamic_ncols=True,desc='Loading Raw Data'):
             fname = row['Filename']
             fpath = os.path.join(data_path,fname)
-#            print(' --> {!s}'.format(fname))
 
             df_load = pd.read_csv(fpath, comment = '#', parse_dates=[0])
             if len(df_load) == 0: continue
@@ -399,6 +433,10 @@ class Grape1Data(object):
 
         df_raw  = pd.concat(df_raw,ignore_index=True)
         df_raw  = df_raw.sort_values('UTC')
+
+        # Enforce sTime/eTime
+        tf      = np.logical_and(df_raw['UTC'] >= sTime, df_raw['UTC'] < eTime)
+        df_raw  = df_raw[tf].copy()
      
         # Generate a label for each Node
         if (call_sign is None) and (grape_nodes is not None):
@@ -532,53 +570,56 @@ class Grape1Data(object):
                           data_set_in='raw',data_set_out='resampled'):
         
         df   = self.data[data_set_in]['df'].copy()
-        
-        # Create the list of datetimes that we want to resample to.
-        # Find the start and end times of the array.
-        sTime = df['UTC'].min()
-        eTime = df['UTC'].max()
 
-        tzinfo= sTime.tzinfo
-
-        # Break
-        sYr  = sTime.year
-        sMon = sTime.month
-        sDy  = sTime.day
-        sHr  = sTime.hour
-        sMin = sTime.minute
-        sSec = sTime.second
-        resample_sTime = datetime.datetime(sYr,sMon,sDy,sHr,sMin,sSec,tzinfo=tzinfo)
-
-        eYr  = eTime.year
-        eMon = eTime.month
-        eDy  = eTime.day
-        eHr  = eTime.hour
-        eMin = eTime.minute
-        eSec = eTime.second
-        resample_eTime = datetime.datetime(eYr,eMon,eDy,eHr,eMin,eSec,tzinfo=tzinfo)
-
-        # Remove LMT column if it exists because it cannot be resampled.
-        if 'LMT' in df.keys():
-            df = df.drop('LMT',axis=1)
-
-        cols        = df.keys()
-        df          = df.set_index(on) # Need to make UTC column index for interpolation to work.
-        df          = df.drop_duplicates()
-
-        df          = df[~df.index.duplicated(keep='first')] # Make sure there are no duplicated indices.
-
-        rs_df       = df.resample(resample_rate,origin=resample_sTime)
-        if method == 'mean': 
-            rs_df = rs_df.mean()
+        if len(df) == 0:
+            rs_df = df.copy()
         else:
-            rs_df = rs_df.interpolate(method='linear')
+            # Create the list of datetimes that we want to resample to.
+            # Find the start and end times of the array.
+            sTime = df['UTC'].min()
+            eTime = df['UTC'].max()
 
-        rs_df       = rs_df.copy()
-        rs_df[on]   = rs_df.index
-        rs_df.index = np.arange(len(rs_df)) 
+            tzinfo= sTime.tzinfo
 
-        # Put Columns back in original order.
-        rs_df       = rs_df[cols].copy()
+            # Break
+            sYr  = sTime.year
+            sMon = sTime.month
+            sDy  = sTime.day
+            sHr  = sTime.hour
+            sMin = sTime.minute
+            sSec = sTime.second
+            resample_sTime = datetime.datetime(sYr,sMon,sDy,sHr,sMin,sSec,tzinfo=tzinfo)
+
+            eYr  = eTime.year
+            eMon = eTime.month
+            eDy  = eTime.day
+            eHr  = eTime.hour
+            eMin = eTime.minute
+            eSec = eTime.second
+            resample_eTime = datetime.datetime(eYr,eMon,eDy,eHr,eMin,eSec,tzinfo=tzinfo)
+
+            # Remove LMT column if it exists because it cannot be resampled.
+            if 'LMT' in df.keys():
+                df = df.drop('LMT',axis=1)
+
+            cols        = df.keys()
+            df          = df.set_index(on) # Need to make UTC column index for interpolation to work.
+            df          = df.drop_duplicates()
+
+            df          = df[~df.index.duplicated(keep='first')] # Make sure there are no duplicated indices.
+
+            rs_df       = df.resample(resample_rate,origin=resample_sTime)
+            if method == 'mean': 
+                rs_df = rs_df.mean()
+            else:
+                rs_df = rs_df.interpolate(method='linear')
+
+            rs_df       = rs_df.copy()
+            rs_df[on]   = rs_df.index
+            rs_df.index = np.arange(len(rs_df)) 
+
+            # Put Columns back in original order.
+            rs_df       = rs_df[cols].copy()
         
         tmp          = {}
         tmp['df']    = rs_df
@@ -856,8 +897,12 @@ class GrapeMultiplot(object):
             data = [data[x] for x in srt]
 
             cmap = color_dct.get('cmap','viridis')
-            vmin = color_dct.get('vmin',np.min(vals))
-            vmax = color_dct.get('vmax',np.max(vals))
+            if len(vals) > 0:
+                vmin = color_dct.get('vmin',np.min(vals))
+                vmax = color_dct.get('vmax',np.max(vals))
+            else:
+                vmin = 0.
+                vmax = 0.
 
             norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
             mpbl = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
@@ -878,12 +923,18 @@ class GrapeMultiplot(object):
             abs_maxes = [] # Keep track of absolute value maxima
             for gd in data:
                 df_data = gd.data[data_set]['df']
+                if len(df_data) == 0:
+                    continue
+
                 label   = gd.meta['label']
 
                 plt_kw  = {}
 
                 xx      = df_data[xkey]
                 yy      = df_data[param]
+
+                if not np.all(np.isfinite(yy)):
+                    continue
 
                 xx_xtrm.append(np.min(xx))
                 xx_xtrm.append(np.max(xx))
@@ -894,6 +945,26 @@ class GrapeMultiplot(object):
                     plt_kw['color'] = mpbl.cmap(mpbl.norm(val))
 
                 ax.plot(xx,yy,label=label,**plt_kw)
+
+            ax.set_title('({!s})'.format(letters[plt_inx]),loc='left')
+
+            prmd    = prm_dict.get(param,{})
+            ylbl    = prmd.get('label',param)
+            ax.set_ylabel(ylbl)
+
+            legend_bbox_to_anchor = (1.04,1)
+            if color_dct is not None:
+                cb_prmd = prm_dict.get(ckey,{})
+                clabel  = cb_prmd.get('label',ckey)
+                fig.colorbar(mpbl,ax=ax,label=clabel)
+                legend_bbox_to_anchor = (1.2,1)
+
+            if legend:
+                ax.legend(bbox_to_anchor=legend_bbox_to_anchor, loc="upper left", borderaxespad=0)
+
+            if len(xx_xtrm) == 0:
+                ax.text(0.5,0.5,'No Data',ha='center',transform=ax.transAxes,fontsize=36)
+                continue
 
             if sTime is None:
                 sTime = min(xx_xtrm)
@@ -906,22 +977,6 @@ class GrapeMultiplot(object):
             if param == 'Freq':
                 abs_max = np.max(abs_maxes)
                 ax.set_ylim(-abs_max*1.05,abs_max*1.05)
-
-            legend_bbox_to_anchor = (1.04,1)
-            if color_dct is not None:
-                cb_prmd = prm_dict.get(ckey,{})
-                clabel  = cb_prmd.get('label',ckey)
-                fig.colorbar(mpbl,ax=ax,label=clabel)
-                legend_bbox_to_anchor = (1.2,1)
-
-            if legend:
-                ax.legend(bbox_to_anchor=legend_bbox_to_anchor, loc="upper left", borderaxespad=0)
-
-            prmd    = prm_dict.get(param,{})
-            ylbl    = prmd.get('label',param)
-            ax.set_ylabel(ylbl)
-
-            ax.set_title('({!s})'.format(letters[plt_inx]),loc='left')
 
             if plt_inx == 0:
                 date_str = sTime.strftime('%Y %b %d %H:%M UT') + ' - ' + sTime.strftime('%Y %b %d %H:%M UT')            
