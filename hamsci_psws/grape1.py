@@ -887,9 +887,35 @@ class GrapeMultiplot(object):
     def multiplot(self,data_set,params=['Freq','Power_dB'],
                     xkey='UTC',
                     sTime=None,eTime=None,
+                    ylims=None,
                     color_dct=None,legend=True,
                     solar_lat=None,solar_lon=None,
                     fig_width=22,panel_height=8):
+        """
+        Plot a time series with traces from multiple instruments overlaid on the same plot.
+
+        data_set:   Name of data set to plot (string)
+        params:     List of parameter keys to plot. A new subplot will be created for each param.
+        xkey:       X-axis parameter.
+                        'UTC' for Coordinated Universal Time
+                        'LMT' for Local Mean Time (solar time)
+        sTime:      Start time of plot (UTC or LMT datetime object)
+        eTime:      End time of plot (UTC or LMT datetime object)
+        ylims:      None or dictionary with ylim for each parameter.
+                    Example:
+                      {'Freq':(-5,5)}
+        color_dct:  Dictionary indicating how to color the traces.
+                    Example:
+                      {'ckey':'lon'} will color the traces according to the lon parameter
+                            using the default colormap (viridis) and vmax/min parameters.
+
+                      {'ckey':'lat','cmap':'jet','vmin':-90,'vmax':90} will color the traces
+                            according to the lat parameter using the jet colormap with
+                            vmin=-90 and vmax=90.
+        legend:     Plot legend with name of each receiving station.
+        solar_lat:  Latitude for computing sunrise/sunset times.
+        solar_lon:  Longitude for computing sunrise/sunset times.
+        """
 
         data = self.gds
 
@@ -983,6 +1009,12 @@ class GrapeMultiplot(object):
                 abs_max = np.max(abs_maxes)
                 ax.set_ylim(-abs_max*1.05,abs_max*1.05)
 
+            # Set ylim from ylims keyword.
+            if ylims is not None:
+                ylim = ylims.get(param)
+                if ylim is not None:
+                    ax.set_ylim(ylim)
+
             if plt_inx == 0:
                 date_str = sTime.strftime('%Y %b %d %H:%M UT') + ' - ' + sTime.strftime('%Y %b %d %H:%M UT')            
                 title = []
@@ -1002,4 +1034,4 @@ class GrapeMultiplot(object):
                 solar.add_terminator(sTime,eTime,solar_lat,solar_lon,ax,xkey=xkey)
 
         fig.tight_layout()
-        return {'fig':fig}
+        return {'fig':fig,'axs':axs}
