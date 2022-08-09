@@ -80,6 +80,47 @@ def dtGreg_to_datetime(dtg):
     pdt = datetime.datetime(dtg.year,dtg.month,dtg.day,dtg.hour,dtg.minute,dtg.second)
     return pdt
 
+def download_url(url,pattern=None,data_dir=None):
+    """
+    Scrape URL for links and download files matching a pattern.
+
+    URL:        Base URL to scrape for links.
+    pattern:    pattern to match filenames to be downloaded
+    data_dir:   path to save files
+
+    Returns:
+        file_paths: list of paths of downloaded files
+    """
+    page        = requests.get(url)
+    soup        = BeautifulSoup(page.text,'html.parser')
+
+    # Parse all links on webpage and save all that match the filename pattern
+    # for the files we want to a download list.
+    dl_list = []
+    for node in soup.find_all('a'):
+        href = node.get('href')
+        if href is None:
+            continue
+
+        if pattern is not None:
+            if not fnmatch.fnmatch(href,pattern):
+                continue
+        dl_list.append(href)
+
+    # Download each of the files in the download list.
+    file_paths = []
+    for dl in dl_list:
+        logging.info('Downloading {0}...'.format(dl))
+        req = requests.get(url+'/'+dl,stream=True)
+        if req.status_code == 200:
+            file_path = os.path.join(data_dir,dl)
+            file_paths.append(file_path)
+            with open(file_path,'wb') as fl:
+                fl.write(req.content)
+        else:
+            logging.info('   Download ERROR.')
+    return file_paths
+
 def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data/goes'):
     """Download GOES X-Ray Flux data from the NOAA FTP Site and return a
     dictionary containing the metadata and a dataframe.
@@ -125,8 +166,6 @@ def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data/goes'):
         ym_list.append(add_months(ym_list[-1]))
 
     # Download Files from NOAA FTP #################################################
-    host        = 'satdat.ngdc.noaa.gov'
-
     if data_dir.endswith('/'): data_dir = data_dir[:-1]
     
     try:
@@ -137,40 +176,23 @@ def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data/goes'):
     #rem_file    = '/sem/goes/data/avg/2014/08/goes15/netcdf/g15_xrs_1m_20140801_20140831.nc' #Example file.
     file_paths  = []
     for myTime in ym_list:
-        #Check to see if we already have a matching file...
-        local_files = glob.glob(os.path.join(data_dir,'g{sat_nr:02d}_xrs_1m_{year:d}{month:02d}*.nc'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)))
-        if len(local_files) > 0:
-            logging.info('Using locally cached file: {0}'.format(local_files[0]))
-            file_paths.append(local_files[0])
-            continue
+        if sat_nr < 16:
+            # Use this downloading section for GOES satellites < 16.
 
-        # Build URL, download webpage.
-        rem_path    = '/sem/goes/data/avg/{year:d}/{month:02d}/goes{sat_nr:d}/netcdf'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)
-        url         = 'https://{!s}{!s}'.format(host,rem_path)
-        page        = requests.get(url)
-        soup        = BeautifulSoup(page.text,'html.parser')
-
-        # Parse all links on webpage and save all that match the filename pattern
-        # for the files we want to a download list.
-        dl_list = []
-        for node in soup.find_all('a'):
-            href = node.get('href')
-            if href is None:
+            #Check to see if we already have a matching file...
+            local_files = glob.glob(os.path.join(data_dir,'g{sat_nr:02d}_xrs_1m_{year:d}{month:02d}*.nc'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)))
+            if len(local_files) > 0:
+                logging.info('Using locally cached file: {0}'.format(local_files[0]))
+                file_paths.append(local_files[0])
                 continue
-            elif fnmatch.fnmatch(href,'g*_xrs_1m_*'):
-                dl_list.append(href)
 
-        # Download each of the files in the download list.
-        for dl in dl_list:
-            logging.info('Downloading {0}...'.format(dl))
-            req = requests.get(url+'/'+dl,stream=True)
-            if req.status_code == 200:
-                file_path = os.path.join(data_dir,dl)
-                file_paths.append(file_path)
-                with open(file_path,'wb') as fl:
-                    fl.write(req.content)
-            else:
-                logging.info('   Download ERROR.')
+            # Build URL, download webpage.
+            url         = 'https://satdat.ngdc.noaa.gov/sem/goes/data/avg/{year:d}/{month:02d}/goes{sat_nr:d}/netcdf'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)
+            pattern     = 'g*_xrs_1m_*'
+            file_paths  = file_paths + download_url(url,pattern,data_dir)
+        else:
+            pass
+
 
     # Load data into memory. #######################################################
     df_xray     = None
