@@ -48,6 +48,8 @@ import pandas as pd
 
 import netCDF4
 
+import warnings
+
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
@@ -188,7 +190,11 @@ def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data/goes'):
         orbit_vars = ['west_longitude','inclination']
         data    = {}
         for var in orbit_vars:
-            data[var] = nc.variables[var][:]
+            # Silence warning: UserWarning: WARNING: missing_value not used since it cannot be safely cast to variable data type
+            # We remove the missing_value flags later in the code, so we can ignore this warning.
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                data[var] = nc.variables[var][:]
         
         df_tmp = pd.DataFrame(data,index=jd)
         df_orbit.append(df_tmp)
@@ -200,7 +206,11 @@ def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data/goes'):
         myVars = ['A_QUAL_FLAG','A_NUM_PTS','A_AVG','B_QUAL_FLAG','B_NUM_PTS','B_AVG']
         data = {}
         for var in myVars:
-            data[var] = nc.variables[var][:]
+            # Silence warning: UserWarning: WARNING: missing_value not used since it cannot be safely cast to variable data type
+            # We remove the missing_value flags later in the code, so we can ignore this warning.
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                data[var] = nc.variables[var][:]
         
         df_tmp = pd.DataFrame(data,index=jd)
         df_xray.append(df_tmp)
