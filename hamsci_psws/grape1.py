@@ -890,6 +890,7 @@ class GrapeMultiplot(object):
                     ylims=None,
                     color_dct=None,legend=True,
                     solar_lat=None,solar_lon=None,
+                    events=None, event_fontdict = {'size':20,'weight':'bold'},
                     fig_width=22,panel_height=8):
         """
         Plot a time series with traces from multiple instruments overlaid on the same plot.
@@ -932,8 +933,12 @@ class GrapeMultiplot(object):
                 vmin = color_dct.get('vmin',np.min(vals))
                 vmax = color_dct.get('vmax',np.max(vals))
             else:
-                vmin = 0.
-                vmax = 0.
+                vmin = -10.
+                vmax =  10.
+
+            if vmin == vmax:
+                vmin = vmin - 10.
+                vmax = vmax + 10.
 
             norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
             mpbl = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
@@ -1028,6 +1033,19 @@ class GrapeMultiplot(object):
                 xprmd   = prm_dict.get(xkey,{})
                 xlbl    = xprmd.get('label',xkey)
                 ax.set_xlabel(xlbl)
+
+            if events is not None:
+                trans       = mpl.transforms.blended_transform_factory(ax.transData,ax.transAxes)
+                for event in events:
+                    evt_dtime   = event.get('datetime')
+                    evt_label   = event.get('label')
+                    evt_color   = event.get('color','brown')
+
+                    ax.axvline(evt_dtime,lw=2,ls='--',color=evt_color)
+                    if evt_label is not None:
+                        ax.text(evt_dtime,0.01,evt_label,transform=trans,
+                                rotation=90,fontdict=event_fontdict,color=evt_color,
+                                va='bottom',ha='right')
 
             # Add solar terminator
             if (solar_lat is not None) and (solar_lon is not None):
