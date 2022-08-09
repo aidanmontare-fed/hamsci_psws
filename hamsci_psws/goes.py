@@ -710,7 +710,7 @@ if __name__ == '__main__':
 
     flares_str = """
 Thank you for testing the goes.py module.  If everything worked, you should find a 
-set of plots for all x-class flares from 1Jan2014 - 30Jun2014 in your DAVIT_TMPDIR/goes.
+set of plots for all x-class flares from 1Jan2014 - 30Jun2014 in your data/goes.
 A list of the flares is given below.  This should match the flares.txt file in the same
 directory as your plots.
 
@@ -725,4 +725,4 @@ directory as your plots.
 """
 
     print(flares_str)
-    print(('Your DAVIT_TMPDIR/goes: {0}'.format(output_dir)))
+    print(('Your data/goes: {0}'.format(output_dir)))
