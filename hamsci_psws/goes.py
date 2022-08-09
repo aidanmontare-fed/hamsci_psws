@@ -36,23 +36,25 @@ import os
 import datetime
 import fnmatch
 import glob
-import ftplib
+import requests
+from bs4 import BeautifulSoup
 import calendar
 
 import matplotlib
-matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 import numpy as np
 import pandas as pd
 
 import netCDF4
-
 import warnings
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
+
+goes_table = []
+
 
 def add_months(sourcedate,months=1):
     """Add 1 month to a datetime object.
@@ -91,6 +93,8 @@ def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data/goes'):
         + 1 day.
     sat_nr : Optional[int]
         GOES Satellite number.  Defaults to 15.
+        A list of GOES satellites and their operational time periods is
+        available at https://www.noaasis.noaa.gov/GOES/goes_overview.html.
 
     Returns
     -------
@@ -132,32 +136,41 @@ def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data/goes'):
 
     #rem_file    = '/sem/goes/data/avg/2014/08/goes15/netcdf/g15_xrs_1m_20140801_20140831.nc' #Example file.
     file_paths  = []
-    try:
-        for myTime in ym_list:
-            #Check to see if we already have a matcing file...
-            local_files = glob.glob(os.path.join(data_dir,'g{sat_nr:02d}_xrs_1m_{year:d}{month:02d}*.nc'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)))
-            if len(local_files) > 0:
-                logging.info('Using locally cached file: {0}'.format(local_files[0]))
-                file_paths.append(local_files[0])
+    for myTime in ym_list:
+        #Check to see if we already have a matching file...
+        local_files = glob.glob(os.path.join(data_dir,'g{sat_nr:02d}_xrs_1m_{year:d}{month:02d}*.nc'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)))
+        if len(local_files) > 0:
+            logging.info('Using locally cached file: {0}'.format(local_files[0]))
+            file_paths.append(local_files[0])
+            continue
+
+        # Build URL, download webpage.
+        rem_path    = '/sem/goes/data/avg/{year:d}/{month:02d}/goes{sat_nr:d}/netcdf'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)
+        url         = 'https://{!s}{!s}'.format(host,rem_path)
+        page        = requests.get(url)
+        soup        = BeautifulSoup(page.text,'html.parser')
+
+        # Parse all links on webpage and save all that match the filename pattern
+        # for the files we want to a download list.
+        dl_list = []
+        for node in soup.find_all('a'):
+            href = node.get('href')
+            if href is None:
                 continue
+            elif fnmatch.fnmatch(href,'g*_xrs_1m_*'):
+                dl_list.append(href)
 
-            rem_path    = '/sem/goes/data/avg/{year:d}/{month:02d}/goes{sat_nr:d}/netcdf'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)
-            ftp         = ftplib.FTP(host,'anonymous','@anonymous')
-            s           = ftp.cwd(rem_path)
-            file_list   = ftp.nlst()
-            dl_list     = [x for x in file_list if fnmatch.fnmatch(x,'g*_xrs_1m_*')]
-            filename    = dl_list[0]
-
-            #Figure out where to save the file locally...
-            file_path   = os.path.join(data_dir,filename)
-            file_paths.append(file_path)
-
-            #Go retrieve the file...
-            logging.info('Downloading {0}...'.format(filename))
-            ftp.retrbinary('RETR {0}'.format(filename), open(file_path, 'wb').write)
-    except:
-        print('GOES Data ERROR.')
-        return
+        # Download each of the files in the download list.
+        for dl in dl_list:
+            logging.info('Downloading {0}...'.format(dl))
+            req = requests.get(url+'/'+dl,stream=True)
+            if req.status_code == 200:
+                file_path = os.path.join(data_dir,dl)
+                file_paths.append(file_path)
+                with open(file_path,'wb') as fl:
+                    fl.write(req.content)
+            else:
+                logging.info('   Download ERROR.')
 
     # Load data into memory. #######################################################
     df_xray     = None
@@ -678,6 +691,10 @@ if __name__ == '__main__':
     sTime       = datetime.datetime(2014,1,1)
     eTime       = datetime.datetime(2014,6,30)
     sat_nr      = 15
+
+#    sTime       = datetime.datetime(2021,10,1)
+#    eTime       = datetime.datetime(2021,11,1)
+#    sat_nr      = 17
 
     goes_data   = read_goes(sTime,eTime,sat_nr)
 
