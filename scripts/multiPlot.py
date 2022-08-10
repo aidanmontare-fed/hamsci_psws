@@ -13,7 +13,7 @@ from hamsci_psws import gen_lib as gl
 from hamsci_psws import grape1
 prm_dict = grape1.prm_dict
 
-mpl.rcParams['font.size']        = 16
+mpl.rcParams['font.size']        = 18
 mpl.rcParams['font.weight']      = 'bold'
 mpl.rcParams['axes.labelweight'] = 'bold'
 mpl.rcParams['axes.titleweight'] = 'bold'
@@ -29,8 +29,8 @@ if __name__ == '__main__':
     node            = 7
     freq            = 10e6 # MHz
 
-    sTime           = datetime.datetime(2021,10,28, tzinfo=pytz.UTC)
-    eTime           = sTime + datetime.timedelta(days=1)
+    sTime           = datetime.datetime(2021,10,28,14, tzinfo=pytz.UTC)
+    eTime           = datetime.datetime(2021,10,28,18, tzinfo=pytz.UTC)
 
     inventory       = grape1.DataInventory()
     inventory.filter(freq=freq,sTime=sTime,eTime=eTime)
@@ -40,9 +40,20 @@ if __name__ == '__main__':
 
     gds = []
     for node in node_nrs:
+#        if node not in [13]:
+#            continue
+
+        # Aidan Montare's station not working right, so skip it.
+        if node in [9,10]:
+            continue
+
         gd = grape1.Grape1Data(node,freq,sTime,eTime,inventory=inventory,grape_nodes=grape_nodes)
         gd.process_data()
         gds.append(gd)
+
+        df = gd.data['filtered']['df']
+
+#        import ipdb; ipdb.set_trace()
 
     mp          = grape1.GrapeMultiplot(gds)
 
@@ -51,12 +62,30 @@ if __name__ == '__main__':
     solar_lon   = -105.0384
 
     color_dct   = {'ckey':'lon'}
-    xkeys       = ['LMT','UTC']
+#    xkeys       = ['LMT','UTC']
+    xkeys       = ['UTC']
+
+    events      = []
+    evt = {}
+    evt['datetime'] = datetime.datetime(2021,10,28,15,35)
+    evt['label']    = 'X1'
+    events.append(evt)
+
+    evt = {}
+    evt['datetime'] = datetime.datetime(2021,10,28,17,38)
+    evt['label']    = 'C4.9'
+    events.append(evt)
+
     for xkey in xkeys:
         print('Plotting: {!s}'.format(xkey))
 
-        ret     = mp.multiplot('filtered',color_dct=color_dct,xkey=xkey,
-                solar_lat=solar_lat,solar_lon=solar_lon)
+        if xkey == 'UTC':
+            events_plot = events
+        else:
+            events_plot = None
+
+        ret     = mp.multiplot('filtered',color_dct=color_dct,xkey=xkey,panel_height=6,
+                events=events_plot,solar_lat=solar_lat,solar_lon=solar_lon,plot_GOES=True)
         fig     = ret['fig']
         fname   = 'multiplot_{!s}.png'.format(xkey)
         fpath   = os.path.join(path,fname)

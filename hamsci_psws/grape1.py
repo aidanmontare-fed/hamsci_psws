@@ -42,6 +42,7 @@ from scipy import signal
 
 from . import locator
 from . import solar
+from . import goes
 from . import gen_lib as gl
 
 prm_dict = {}
@@ -52,6 +53,7 @@ prm_dict[pkey]['label'] = 'Doppler Shift [Hz]'
 prm_dict[pkey]['vmin']  = -0.5
 prm_dict[pkey]['vmax']  =  0.5
 prm_dict[pkey]['cmap']  = 'bwr_r'
+prm_dict[pkey]['title'] = 'Grape Doppler Shift'
 
 pkey = 'Vpk'
 prm_dict[pkey] = {}
@@ -60,6 +62,7 @@ prm_dict[pkey]['label'] = 'Peak Voltage [V]'
 pkey = 'Power_dB'
 prm_dict[pkey] = {}
 prm_dict[pkey]['label'] = 'Received Power [dB]'
+prm_dict[pkey]['title'] = 'Grape Received Power'
 
 pkey = 'LMT'
 prm_dict[pkey] = {}
@@ -891,6 +894,7 @@ class GrapeMultiplot(object):
                     color_dct=None,legend=True,
                     solar_lat=None,solar_lon=None,
                     events=None, event_fontdict = {'size':20,'weight':'bold'},
+                    plot_GOES=False,GOES_sat_nr=17,GOES_data_dir='data/goes',
                     fig_width=22,panel_height=8):
         """
         Plot a time series with traces from multiple instruments overlaid on the same plot.
@@ -920,6 +924,7 @@ class GrapeMultiplot(object):
 
         data = self.gds
 
+        # Sort data objects by specified parameter and set color.
         if color_dct is not None:
             ckey = color_dct.get('ckey')
 
@@ -942,20 +947,67 @@ class GrapeMultiplot(object):
 
             norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
             mpbl = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+
+        # Determine sTime and eTime if not specified.
+        if sTime is None or eTime is None:
+            xx_xtrm   = [] # Keep track of time extrema.
+            for gd in data:
+                df_data = gd.data[data_set]['df']
+                if len(df_data) == 0:
+                    continue
+
+                xx      = df_data[xkey]
+                xx_xtrm.append(np.min(xx))
+                xx_xtrm.append(np.max(xx))
+
+            if sTime is None:
+                sTime = min(xx_xtrm)
+
+            if eTime is None:
+                eTime = max(xx_xtrm)
+
 	    
         ncols = 1
         nrows = len(params)
+        if plot_GOES:
+            nrows += 1
 
         figsize = (fig_width, nrows*panel_height)
         fig     = plt.figure(figsize=figsize)
 
         axs = []
+        plt_inx = 0
+        if plot_GOES:
+            ax   = fig.add_subplot(nrows, ncols, plt_inx+1)
+            ax.set_title('({!s})'.format(letters[plt_inx]),loc='left')
+            axs.append(ax)
+
+            goes_data = goes.read_goes(sTime,eTime,sat_nr=GOES_sat_nr,data_dir=GOES_data_dir)
+            goes.goes_plot(goes_data,sTime,eTime,ax=ax)
+            ax.set_title('NOAA GOES-{:02d}'.format(GOES_sat_nr),loc='right')
+
+            if plt_inx != nrows-1:
+                ax.set_xticklabels('')
+
+            if events is not None:
+                trans       = mpl.transforms.blended_transform_factory(ax.transData,ax.transAxes)
+                for event in events:
+                    evt_dtime   = event.get('datetime')
+                    evt_label   = event.get('label')
+                    evt_color   = event.get('color','0.4')
+
+                    ax.axvline(evt_dtime,lw=1,ls='--',color=evt_color)
+                    if evt_label is not None:
+                        ax.text(evt_dtime,0.01,evt_label,transform=trans,
+                                rotation=90,fontdict=event_fontdict,color=evt_color,
+                                va='bottom',ha='right')
+
         params = gl.get_iterable(params)
-        for plt_inx,(param) in enumerate(params):
+        for prm_inx,(param) in enumerate(params):
+            plt_inx += 1
             ax   = fig.add_subplot(nrows, ncols, plt_inx+1)
             axs.append(ax)
 
-            xx_xtrm   = [] # Keep track of time extrema.
             abs_maxes = [] # Keep track of absolute value maxima
             for gd in data:
                 df_data = gd.data[data_set]['df']
@@ -972,9 +1024,6 @@ class GrapeMultiplot(object):
                 if not np.all(np.isfinite(yy)):
                     continue
 
-                xx_xtrm.append(np.min(xx))
-                xx_xtrm.append(np.max(xx))
-
                 abs_maxes.append(np.nanmax(np.abs(yy)))
                 if color_dct is not None:
                     val     = gd.meta[ckey]
@@ -985,6 +1034,10 @@ class GrapeMultiplot(object):
             ax.set_title('({!s})'.format(letters[plt_inx]),loc='left')
 
             prmd    = prm_dict.get(param,{})
+            rtitle  = prmd.get('title')
+            if rtitle:
+                ax.set_title(rtitle,loc='right')
+
             ylbl    = prmd.get('label',param)
             ax.set_ylabel(ylbl)
 
@@ -1002,12 +1055,6 @@ class GrapeMultiplot(object):
                 ax.text(0.5,0.5,'No Data',ha='center',transform=ax.transAxes,fontsize=36)
                 continue
 
-            if sTime is None:
-                sTime = min(xx_xtrm)
-
-            if eTime is None:
-                eTime = max(xx_xtrm)
-
             ax.set_xlim(sTime,eTime)
 
             if param == 'Freq':
@@ -1020,12 +1067,6 @@ class GrapeMultiplot(object):
                 if ylim is not None:
                     ax.set_ylim(ylim)
 
-            if plt_inx == 0:
-                date_str = sTime.strftime('%Y %b %d %H:%M UT') + ' - ' + sTime.strftime('%Y %b %d %H:%M UT')            
-                title = []
-                title.append('HamSCI Grape PSWS Observations')
-                title.append(date_str)
-                ax.set_title('\n'.join(title))
 
             if plt_inx != nrows-1:
                 ax.set_xticklabels('')
@@ -1039,9 +1080,9 @@ class GrapeMultiplot(object):
                 for event in events:
                     evt_dtime   = event.get('datetime')
                     evt_label   = event.get('label')
-                    evt_color   = event.get('color','brown')
+                    evt_color   = event.get('color','0.4')
 
-                    ax.axvline(evt_dtime,lw=2,ls='--',color=evt_color)
+                    ax.axvline(evt_dtime,lw=1,ls='--',color=evt_color)
                     if evt_label is not None:
                         ax.text(evt_dtime,0.01,evt_label,transform=trans,
                                 rotation=90,fontdict=event_fontdict,color=evt_color,
@@ -1051,5 +1092,15 @@ class GrapeMultiplot(object):
             if (solar_lat is not None) and (solar_lon is not None):
                 solar.add_terminator(sTime,eTime,solar_lat,solar_lon,ax,xkey=xkey)
 
+        date_str = sTime.strftime('%Y %b %d %H:%M UT') + ' - ' + eTime.strftime('%Y %b %d %H:%M UT')            
+        title = []
+#        title.append('HamSCI Grape PSWS Observations')
+        title.append(date_str)
+        axs[0].text(0.5,1.1,'\n'.join(title),ha='center',fontsize=24,
+                fontweight='bold',transform=axs[0].transAxes)
+
         fig.tight_layout()
+        if plot_GOES:
+            gl.adjust_axes(axs[0],axs[-1])
+
         return {'fig':fig,'axs':axs}

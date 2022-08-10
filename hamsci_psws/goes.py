@@ -858,8 +858,8 @@ if __name__ == '__main__':
 #    eTime       = datetime.datetime(2014,6,30)
 #    sat_nr      = 15
 
-    sTime       = datetime.datetime(2021,10,1)
-    eTime       = datetime.datetime(2021,11,15)
+    sTime       = datetime.datetime(2021,10,28)
+    eTime       = datetime.datetime(2021,10,29)
     sat_nr      = 17
 
     goes_data   = read_goes(sTime,eTime,sat_nr)
@@ -870,7 +870,7 @@ if __name__ == '__main__':
     except:
         pass
 
-    flares      = find_flares(goes_data)
+    flares      = find_flares(goes_data,min_class='C1')
 
     with open(os.path.join(output_dir,'flares.txt'),'w') as fl:
         fl.write(flares.to_string())
