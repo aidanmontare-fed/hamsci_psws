@@ -71,9 +71,8 @@ def add_terminator(sTime,eTime,lat,lon,ax,color='0.7',alpha=0.3,xkey='UTC',
         sTime = utc_time(sTime,lon)
         eTime = utc_time(eTime,lon)
 
-    xlim        = mpl.dates.num2date(ax.get_xlim())
-    xlim_0      = xlim[0].replace(tzinfo=None)
-    xlim_1      = xlim[1].replace(tzinfo=None)
+    xlim_0      = sTime.replace(tzinfo=None)
+    xlim_1      = eTime.replace(tzinfo=None)
 
     sDate = datetime.datetime(sTime.year,sTime.month,sTime.day) - datetime.timedelta(days=1)
     eDate = datetime.datetime(eTime.year,eTime.month,eTime.day) + datetime.timedelta(days=1)
