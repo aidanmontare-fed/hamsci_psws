@@ -1005,7 +1005,7 @@ class GrapeMultiplot(object):
         params = gl.get_iterable(params)
         for prm_inx,(param) in enumerate(params):
             plt_inx += 1
-            ax   = fig.add_subplot(nrows, ncols, plt_inx+1)
+            ax   = fig.add_subplot(nrows, ncols, plt_inx)
             axs.append(ax)
 
             abs_maxes = [] # Keep track of absolute value maxima
