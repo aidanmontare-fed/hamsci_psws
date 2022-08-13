@@ -1069,7 +1069,7 @@ class GrapeMultiplot(object):
                     ax.set_ylim(ylim)
 
 
-            if plt_inx != nrows-1:
+            if plt_inx != nrows:
                 ax.set_xticklabels('')
             else:
                 xprmd   = prm_dict.get(xkey,{})
