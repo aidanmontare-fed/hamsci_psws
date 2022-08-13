@@ -1,7 +1,13 @@
+beautifulsoup4
 matplotlib
-tqdm
+netCDF4
 numpy
 pandas
-cartopy
-ipdb
+plotly
+python_dateutil
+pytz
+requests
+scipy
 suntime
+tqdm
+xarray
