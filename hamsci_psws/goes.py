@@ -19,7 +19,7 @@
 A module for working with GOES data.
 
 Module Author:: N.A. Frissell, 6 Sept 2014
-    Updated 9 August 2022
+    Updated 14 August 2022
 
 Functions
 --------------------------------------------------------
@@ -151,7 +151,7 @@ def download_url(url,pattern=None,data_dir=None,sTime=None,eTime=None):
             logging.info('   Download ERROR.')
     return file_paths
 
-def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data/goes'):
+def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data_goes'):
     """Download GOES X-Ray Flux data from the NOAA FTP Site and return a
     dictionary containing the metadata and a dataframe.
 
@@ -864,7 +864,7 @@ if __name__ == '__main__':
 
     goes_data   = read_goes(sTime,eTime,sat_nr)
 
-    output_dir  = 'data/goes'
+    output_dir  = 'data_goes'
     try:
         os.makedirs(output_dir)
     except:
