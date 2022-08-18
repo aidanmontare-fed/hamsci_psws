@@ -233,8 +233,15 @@ class DataInventory(object):
         fig = px.timeline(invt, x_start="Datetime", x_end="EndTime", y="Node", color="Frequency", category_orders={"Node": logged_nodes})
         fig.update_yaxes(type='category')
         fig.update_annotations(text = "Filename", clicktoshow='on')
+        
+        fig.update_layout({
+            'plot_bgcolor': 'rgba(0, 0, 0, 0)',
+            'paper_bgcolor': 'rgba(0, 0, 0, 0)',
+            'font_size': mpl.rcParams['font.size']
+        })
+        
         fig.show()
-
+        
         if html_out:
             fig.write_html(html_out, include_plotlyjs="cdn")
 
