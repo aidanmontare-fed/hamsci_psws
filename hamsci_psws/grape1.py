@@ -129,6 +129,8 @@ class DataInventory(object):
         df.loc[df['Frequency'] == 'WWV10',   'Frequency'] = 10e6
         df.loc[df['Frequency'] == 'WWV2p5',  'Frequency'] = 2.5e6
         df.loc[df['Frequency'] == 'WWV15',   'Frequency'] = 15e6
+        df.loc[df['Frequency'] == 'WWV20',   'Frequency'] = 20e6
+        df.loc[df['Frequency'] == 'WWV25',   'Frequency'] = 25e6
         df.loc[df['Frequency'] == 'CHU3',    'Frequency'] = 3330e3
         df.loc[df['Frequency'] == 'CHU7',    'Frequency'] = 7850e3
         df.loc[df['Frequency'] == 'CHU14',   'Frequency'] = 14.67e6
