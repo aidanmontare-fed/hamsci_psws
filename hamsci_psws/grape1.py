@@ -987,7 +987,8 @@ class GrapeMultiplot(object):
         axs = []
         plt_inx = 0
         if plot_GOES:
-            ax   = fig.add_subplot(nrows, ncols, plt_inx+1)
+            plt_inx += 1
+            ax   = fig.add_subplot(nrows, ncols, plt_inx)
             ax.set_title('({!s})'.format(letters[plt_inx]),loc='left')
             axs.append(ax)
 
@@ -1077,7 +1078,7 @@ class GrapeMultiplot(object):
                     ax.set_ylim(ylim)
 
 
-            if plt_inx != nrows-1:
+            if plt_inx != nrows:
                 ax.set_xticklabels('')
             else:
                 xprmd   = prm_dict.get(xkey,{})
