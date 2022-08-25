@@ -374,7 +374,7 @@ class Filter(object):
         plt.subplot(212)
         plt.plot(f, np.unwrap(np.angle(h)))
         plt.xscale('log')
-        plt.title('Butterworth Filter Frequency Response')
+        plt.title('Butterworth Filter Phase Response')
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Phase [rad]')
         plt.grid(which='both', axis='both')
