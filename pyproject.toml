@@ -25,5 +25,8 @@ dynamic = ["dependencies"]
 "Bug Tracker" = "https://github.com/HamSCI/hamsci_psws/issues"
 "HamSCI Website" = "https://hamsci.org"
 
+[tool.setuptools]
+packages = ["hamsci_psws"]
+
 [tool.setuptools.dynamic]
 dependencies = {file = "requirements.txt"}
