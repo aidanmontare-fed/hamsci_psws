@@ -42,19 +42,27 @@ To upload a release, you will need an account at https://pypi.org/, and an API t
 
 `pip install --upgrade build twine`
 
-3. Build the package (from the root directory of the project):
+3. Each new release will need an incremented version number in `pyproject.toml`.
+
+4. Build the package (from the root directory of the project).
 
 `python -m build`
 
-4. Upload to [PyPI](https://pypi.org/):
+5. Upload to [PyPI](https://pypi.org/):
 
 `python -m twine upload dist/*`
 
 Enter `__token__` as the user name, and your token as the token, including the `pypi-` prefix.
 
-5. Test package installation, preferrably in a separate environment from where you are developing.
+6. Test package installation, preferrably in a separate environment from where you are developing.
 
 `pip install hamsci_psws`
 
 
+
+More info: https://packaging.python.org/en/latest/tutorials/packaging-projects/
+
+
 ## Citing this Project
+
+You can use `CITATION.cff`.

@@ -1,6 +1,7 @@
 # Aidan's todo
 
 versioning
+why does the whole license text display on the sidebar?
 packaging
 dependencies in pyproject?
 keywords in pyproject?

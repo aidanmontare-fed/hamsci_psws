@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hamsci_psws"
-version = "0.1" # TODO should increment
+version = "0.2"
 authors = [
   { name="Nathaniel A. Frissell", email="nathaniel.frissell@scranton.edu"},
   { name="Kristina V. Collins"}
@@ -12,7 +12,7 @@ authors = [
 description = "HamSCI Grape v1 Personal Space Weather Station Plotting Tools"
 readme = "README.md"
 license = { file="LICENSE" }
-requires-python = ">=3.7"
+requires-python = ">=3.6"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
