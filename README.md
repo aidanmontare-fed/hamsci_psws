@@ -9,6 +9,13 @@ To begin, download the most recent dataset from [![DOI](https://zenodo.org/badge
 ## Installation
 
 
+### With pip
+
+The hamsci_psws package is distributed on the Python Package Index: https://pypi.org/project/hamsci_psws/
+
+`pip install hamsci_psws`
+
+
 ## Getting Started
 
 
@@ -25,6 +32,8 @@ Contributions to HamSCI projects are welcome.
 
 ### Releasing the Package
 
+To upload a release, you will need an account at https://pypi.org/, and an API token for that account.
+
 1. Make sure you have the latest version of [pip](https://pip.pypa.io/en/stable/):
 
 `pip install --upgrade pip`
@@ -40,6 +49,8 @@ Contributions to HamSCI projects are welcome.
 4. Upload to [PyPI](https://pypi.org/):
 
 `python -m twine upload dist/*`
+
+Enter `__token__` as the user name, and your token as the token, including the `pypi-` prefix.
 
 5. Test package installation, preferrably in a separate environment from where you are developing.
 
