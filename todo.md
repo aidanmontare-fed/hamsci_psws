@@ -12,4 +12,4 @@ why are we importing all the things in __init__?
 tests
 why scripts/filelist.txt and ./filelist.txt?
 linting
-set packages in pyproject?
+why couldn't I read requirements.txt?
