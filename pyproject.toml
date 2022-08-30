@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hamsci_psws"
+version = "0.1" # TODO should increment
+authors = [
+  { name="Nathaniel A. Frissell", email="nathaniel.frissell@scranton.edu"},
+  { name="Kristina V. Collins"}
+]
+description = "HamSCI Grape v1 Personal Space Weather Station Plotting Tools"
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/HamSCI/hamsci_psws"
+"Bug Tracker" = "https://github.com/HamSCI/hamsci_psws/issues"
+"HamSCI Website" = "https://hamsci.org"
