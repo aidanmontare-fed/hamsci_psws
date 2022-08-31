@@ -22,6 +22,10 @@ extensions = [
     # 'sphinx.ext.doctest'
 ]
 
+autodoc_default_options = {
+    'show-inheritance': True,
+}
+
 # don't seem to need this to get desired functionality
 # autosummary_generate = True
 
