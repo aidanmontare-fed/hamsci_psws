@@ -71,6 +71,21 @@ Install the repository in 'editable' mode:
 
 `pip install -e .`
 
+### Building the Documentation
+
+`cd docs`
+
+`make html`
+
+Open `build/html/index.html` in a web browser.
+
+Within `docs/`, `make clean` can be used to ensure a clean slate for rebuilding the documentation.
+
+
+Documentation for hamsci_psws is hosted on Read the Docs: https://hamsci-psws.readthedocs.io/en/latest/
+
+
+
 ### Releasing the Package
 
 To upload a release, you will need an account at https://pypi.org/, and an API token for that account.
@@ -100,10 +115,6 @@ Enter `__token__` as the user name, and your token as the token, including the `
 `pip install hamsci_psws`
 
 More info: https://packaging.python.org/en/latest/tutorials/packaging-projects/
-
-### Building the Documentation
-
-Documentation for hamsci_psws is hosted on Read the Docs: https://hamsci-psws.readthedocs.io/en/latest/
 
 
 ## Citing this Project
