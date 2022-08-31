@@ -23,7 +23,7 @@ extensions = [
 ]
 
 autodoc_default_options = {
-    'undoc-members': True,
+    'undoc-members': True, # set this to false if you do not want functions without docstrings to appear in the docs
     'show-inheritance': True,
 }
 
