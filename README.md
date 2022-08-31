@@ -38,7 +38,7 @@ The hamsci_psws package is distributed on the Python Package Index: https://pypi
 
 `pip install hamsci_psws`
 
-#### From the git repository
+#### From the git repository:
 
 Follow the same instructions as installing the interactive notebooks.
 
