@@ -305,8 +305,11 @@ class Filter(object):
     def __init__(self,N=6,Tc_min = 3.3333,btype='low',fs=1.):
         """
         Generate a digital filter that can be applied to the data.
+
         This routine uses the scipy.signal.butter Butterworth filter.
 
+        Parameters
+        ----------
         N:      Filter order.
         Tc_min: Cuttoff in minutes. Scalar value for 'low' and 'high'
                 filter btypes; 2-element iterable for 'bandpass' and 

@@ -145,10 +145,12 @@ def geodToGeocAzEl(lat,lon,az,el,inverse=False):
 
 def gspToGcar(X, Y, Z, inverse=False):
     """Converts a position from global spherical (geocentric) to global cartesian (and vice-versa).
+
     The global cartesian coordinate system is defined as:
         - origin: center of the Earth
         - X axis in the equatorial plane and through the prime meridian.
         - Z axis in the direction of the rotational axis and through the North pole
+
     The meaning of the input (X,Y,Z) depends on the direction of the conversion 
     (to global cartesian or to global spherical).
 
@@ -190,15 +192,18 @@ def gspToGcar(X, Y, Z, inverse=False):
 
 def gcarToLcar(X, Y, Z, lat, lon, rho , inverse=False):
     """Converts a position from global cartesian to local cartesian (and vice-versa).
+
     The global cartesian coordinate system is defined as:
         - origin: center of the Earth
         - Z axis in the direction of the rotational axis and through the North pole
         - X axis in the equatorial plane and through the prime meridian.
+
     The local cartesian coordinate system is defined as:
         - origin: local position
         - X: East
         - Y: North
         - Z: up
+
     The meaning of the input (X,Y,Z) depends on the direction of the conversion 
     (to global cartesian or to global spherical).
 
@@ -269,16 +274,19 @@ def gcarToLcar(X, Y, Z, lat, lon, rho , inverse=False):
 
 def lspToLcar(X, Y, Z, inverse=False):
     """Converts a position from local spherical to local cartesian (and vice-versa).
+
     The local spherical coordinate system is defined as:
         - origin: local position
         - azimuth (with respect to North)
         - Elevation (with respect to horizon)
         - Altitude
+
     The local cartesian coordinate system is defined as:
         - origin: local position
         - X: East
         - Y: North
         - Z: up
+        
     The meaning of the input (X,Y,Z) depends on the direction of the conversion 
     (to global cartesian or to global spherical).
 
@@ -333,7 +341,8 @@ def calcDistPnt(origLat, origLon, origAlt, \
         - the coordinates and distance of a distant point given a point of origin, altitude, azimuth and elevation, or 
         - the distance, azimuth and elevation between a point of origin and a distant point or 
         - the distance, azimuth between a point of origin and a distant point and the altitude of said distant point given 
-        a point of origin, distant point and elevation angle.
+          a point of origin, distant point and elevation angle.
+
     Input/output is in geodetic coordinates, distances are in km and angles in degrees.
 
     Parameters
