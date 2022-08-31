@@ -517,7 +517,7 @@ def greatCircleMove(origLat, origLon, dist, az, alt=0,Re=6371.):
 
 
 def greatCircleAzm(lat1,lon1,lat2,lon2):
-    """Calculates the azimuth from the coordinates of a start point to and end point
+    """Calculates the azimuth from the coordinates of a start point to an end point
     along a great circle path.
 
     Parameters
