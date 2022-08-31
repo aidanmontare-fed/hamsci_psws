@@ -2,7 +2,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/hamsci-psws-test/badge/?version=latest)](https://hamsci-psws-test.readthedocs.io/en/latest/?badge=latest)
 
-**TODO update for production**
+**TODO update badges for production environment**
 
 
 Plotting data from Grape V1 receivers.
@@ -15,6 +15,8 @@ To begin, download the most recent dataset from [![DOI](https://zenodo.org/badge
 ## Installation
 
 hamsci_psws includes both a reusuable Python package (intended to be imported and reused by other projects) and a set of scripts and interactive notebooks using that package. How you should install hamsci_psws depends on how you intend to use it.
+
+**If you want to run the interactive notebooks**, you should download this repository and install from it. **If you want to use the library in other projects**, you can either do that or just install the library from a package index.
 
 ### If you want to run the interactive notebooks
 
@@ -55,7 +57,7 @@ Follow the same instructions as installing the interactive notebooks.
 
 ## Contributing
 
-Contributions to HamSCI projects are welcome.
+Contributions to HamSCI projects are welcome. See https://hamsci.org/get-involved for general information about getting involved in the HamSCI community.
 
 ### Development Environment
 
