@@ -5,3 +5,4 @@ API
    :toctree: generated
 
    hamsci_psws
+   hamsci_psws.goes
