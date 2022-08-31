@@ -1,4 +1,8 @@
 # hamsci_psws
+
+[![Documentation Status](https://readthedocs.org/projects/hamsci-psws-test/badge/?version=latest)](https://hamsci-psws-test.readthedocs.io/en/latest/?badge=latest)
+
+
 Plotting data from Grape V1 receivers.
 
 In terminal, clone repository and install with `pip install .`.
