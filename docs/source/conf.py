@@ -22,6 +22,9 @@ extensions = [
     # 'sphinx.ext.doctest'
 ]
 
+# don't seem to need this to get desired functionality
+# autosummary_generate = True
+
 templates_path = ['_templates']
 exclude_patterns = []
 
