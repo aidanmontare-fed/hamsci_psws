@@ -2,6 +2,8 @@
 
 [![Documentation Status](https://readthedocs.org/projects/hamsci-psws-test/badge/?version=latest)](https://hamsci-psws-test.readthedocs.io/en/latest/?badge=latest)
 
+**TODO update for production**
+
 
 Plotting data from Grape V1 receivers.
 
@@ -12,12 +14,33 @@ To begin, download the most recent dataset from [![DOI](https://zenodo.org/badge
 
 ## Installation
 
+hamsci_psws includes both a reusuable Python package (intended to be imported and reused by other projects) and a set of scripts and interactive notebooks using that package. How you should install hamsci_psws depends on how you intend to use it.
 
-### With pip
+### If you want to run the interactive notebooks
+
+Make sure you have a recent Python version and Jupyter installed.
+
+Clone this repository into a suitable location on your computer:
+
+`git clone https://github.com/HamSCI/hamsci_psws`
+
+`cd hamsci_psws`
+
+`pip install .`
+
+You should now be able to open and run the notebooks within `scripts/` using Jupyter.
+
+### If you want to use the library in other projects
+
+### From the Python Package Index
 
 The hamsci_psws package is distributed on the Python Package Index: https://pypi.org/project/hamsci_psws/
 
 `pip install hamsci_psws`
+
+### From the git repository
+
+Follow the same instructions as installing the interactive notebooks.
 
 
 ## Getting Started
@@ -33,6 +56,18 @@ The hamsci_psws package is distributed on the Python Package Index: https://pypi
 ## Contributing
 
 Contributions to HamSCI projects are welcome.
+
+### Development Environment
+
+Clone this repository into a suitable location on your computer:
+
+`git clone https://github.com/HamSCI/hamsci_psws`
+
+`cd hamsci_psws`
+
+Install the repository in 'editable' mode:
+
+`pip install -e .`
 
 ### Releasing the Package
 
@@ -62,9 +97,11 @@ Enter `__token__` as the user name, and your token as the token, including the `
 
 `pip install hamsci_psws`
 
-
-
 More info: https://packaging.python.org/en/latest/tutorials/packaging-projects/
+
+### Building the Documentation
+
+Documentation for hamsci_psws is hosted on Read the Docs: https://hamsci-psws.readthedocs.io/en/latest/
 
 
 ## Citing this Project
