@@ -22,8 +22,6 @@ set stable to the default version for readthedocs?
 readthedocs show a warning for old versions
 doctests?
 clean up docs
-show a doc page for each function
 show modules in table of contents?
-configure viewcode
 doc coverage?
 mathjax docs?
