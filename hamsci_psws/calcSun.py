@@ -10,7 +10,6 @@ Translated to Python by Sebastien de Larquier
 
 """
 
-import math
 import numpy
 
 
