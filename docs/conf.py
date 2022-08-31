@@ -7,8 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'hamsci_psws'
-copyright = '2022, Nathaniel A. Frissell and Kristina V> Collins'
-author = 'Nathaniel A. Frissell and Kristina V> Collins'
+copyright = '2022, Nathaniel A. Frissell and Kristina V. Collins'
+author = 'Nathaniel A. Frissell and Kristina V. Collins'
 release = '0.2'
 
 # -- General configuration ---------------------------------------------------
