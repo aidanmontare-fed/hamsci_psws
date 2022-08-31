@@ -4,7 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hamsci_psws"
-version = "0.2"
 authors = [
   { name="Nathaniel A. Frissell", email="nathaniel.frissell@scranton.edu"},
   { name="Kristina V. Collins"}
@@ -33,6 +32,7 @@ dependencies = [
     "tqdm",
     "xarray"
 ]
+dynamic = ["version"]
 
 [project.urls]
 "Homepage" = "https://github.com/HamSCI/hamsci_psws"
@@ -41,3 +41,6 @@ dependencies = [
 
 [tool.setuptools]
 packages = ["hamsci_psws"]
+
+[tools.setuptools.dynamic]
+version = {attr = "hamsci_psws.__version__"}
