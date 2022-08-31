@@ -32,13 +32,13 @@ You should now be able to open and run the notebooks within `scripts/` using Jup
 
 ### If you want to use the library in other projects
 
-### From the Python Package Index
+#### From the Python Package Index:
 
 The hamsci_psws package is distributed on the Python Package Index: https://pypi.org/project/hamsci_psws/
 
 `pip install hamsci_psws`
 
-### From the git repository
+#### From the git repository
 
 Follow the same instructions as installing the interactive notebooks.
 
