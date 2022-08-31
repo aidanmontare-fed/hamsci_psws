@@ -10,12 +10,9 @@ geodToGeocAzEl      converts azimuth and elevation from geodetic to geocentric (
 gspToGcar           converts global spherical coordinates to global cartesian coordinates (and vice-versa)
 gcarToLcar          converts from global cartesian coordinates to local cartesian coordinates (and vice-versa)
 lspToLcar           converts from local spherical coordinates to local cartesian coordinates (and vice-versa)
-calcDistPnt         calculates the coordines|distance,elevation,azimuth of a point given a point of origin and 
-        distance,elevation,azimuth|distant point coordinates
-greatCircleMove     Calculates the coordinates of an end point along a great circle path 
-        given the original coordinates, distance, azimuth, and altitude.
-greatCircleAzm      Calculates the azimuth from the coordinates of a start point to and end point
-        along a great circle path.
+calcDistPnt         calculates the coordines|distance,elevation,azimuth of a point given a point of origin and distance,elevation,azimuth|distant point coordinates
+greatCircleMove     Calculates the coordinates of an end point along a great circle path given the original coordinates, distance, azimuth, and altitude.
+greatCircleAzm      Calculates the azimuth from the coordinates of a start point to and end point along a great circle path.
 greatCircleDist     Calculates the distance in radians along a great circle path between two points.
 
 References
