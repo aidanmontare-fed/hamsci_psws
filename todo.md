@@ -25,3 +25,6 @@ clean up docs
 show modules in table of contents?
 doc coverage?
 mathjax docs?
+remove the short titles from the table in the api docs
+get table in goes.py working in docs
+get lists separated without bullets working in docs
