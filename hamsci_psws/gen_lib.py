@@ -6,6 +6,7 @@ import datetime
 def get_iterable(x):
     """
     Guarantee that a variable is iterable.
+
     If x is a single item, return it as a 1-element tuple.
     If x is already iterable, return x.
     """
