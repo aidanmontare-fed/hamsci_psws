@@ -1,4 +1,8 @@
 # hamsci_psws
+
+[![Documentation Status](https://readthedocs.org/projects/hamsci-psws/badge/?version=latest)](https://hamsci-psws.readthedocs.io/en/latest/?badge=latest)
+
+
 Plotting data from Grape V1 receivers.
 
 In terminal, clone repository and install with `pip install .`.
@@ -8,12 +12,35 @@ To begin, download the most recent dataset from [![DOI](https://zenodo.org/badge
 
 ## Installation
 
+hamsci_psws includes both a reusuable Python package (intended to be imported and reused by other projects) and a set of scripts and interactive notebooks using that package. How you should install hamsci_psws depends on how you intend to use it.
 
-### With pip
+**If you want to run the interactive notebooks**, you should download this repository and install from it. **If you want to use the library in other projects**, you can either do that or just install the library from a package index.
+
+### If you want to run the interactive notebooks
+
+Make sure you have a recent Python version and Jupyter installed.
+
+Clone this repository into a suitable location on your computer:
+
+`git clone https://github.com/HamSCI/hamsci_psws`
+
+`cd hamsci_psws`
+
+`pip install .`
+
+You should now be able to open and run the notebooks within `scripts/` using Jupyter.
+
+### If you want to use the library in other projects
+
+#### From the Python Package Index:
 
 The hamsci_psws package is distributed on the Python Package Index: https://pypi.org/project/hamsci_psws/
 
 `pip install hamsci_psws`
+
+#### From the git repository:
+
+Follow the same instructions as installing the interactive notebooks.
 
 
 ## Getting Started
@@ -28,7 +55,34 @@ The hamsci_psws package is distributed on the Python Package Index: https://pypi
 
 ## Contributing
 
-Contributions to HamSCI projects are welcome.
+Contributions to HamSCI projects are welcome. See https://hamsci.org/get-involved for general information about getting involved in the HamSCI community.
+
+### Development Environment
+
+Clone this repository into a suitable location on your computer:
+
+`git clone https://github.com/HamSCI/hamsci_psws`
+
+`cd hamsci_psws`
+
+Install the repository in 'editable' mode:
+
+`pip install -e .`
+
+### Building the Documentation
+
+`cd docs`
+
+`make html`
+
+Open `build/html/index.html` in a web browser.
+
+Within `docs/`, `make clean` can be used to ensure a clean slate for rebuilding the documentation.
+
+
+Documentation for hamsci_psws is hosted on Read the Docs: https://hamsci-psws.readthedocs.io/en/latest/
+
+
 
 ### Releasing the Package
 
@@ -57,8 +111,6 @@ Enter `__token__` as the user name, and your token as the token, including the `
 6. Test package installation, preferrably in a separate environment from where you are developing.
 
 `pip install hamsci_psws`
-
-
 
 More info: https://packaging.python.org/en/latest/tutorials/packaging-projects/
 

@@ -150,20 +150,23 @@ class DataInventory(object):
         and stored in self.df. Unfiltered results will always be available
         in self.df_unfiltered.
 
+        Parameters
+        ----------
         nodes:  node numbers (int or list of ints)
         G:      type of receiving station (string or list of strings)
-		    G – Grape (Low Cost Platform)
-			1 – Generation 1 (has 1 receiver)
-			2 – Generation 2 (has 4 receivers)
-		    T – Tangerine (High Performance Platform)
-			1 – Generation 1
-			2 – Generation 2
-		    S – Standard / Commercial (Amateur) Hardware (details in Metadata)
-		    U – User Custom Hardware (details in Metadata)
-		    N – No radio collectiopn – instrument(s) only – defaults to N0
+		        G – Grape (Low Cost Platform)
+		    	1 – Generation 1 (has 1 receiver)
+		    	2 – Generation 2 (has 4 receivers)
+		        T – Tangerine (High Performance Platform)
+		    	1 – Generation 1
+		     	2 – Generation 2
+		        S – Standard / Commercial (Amateur) Hardware (details in Metadata)
+		        U – User Custom Hardware (details in Metadata)
+		        N – No radio collectiopn – instrument(s) only – defaults to N0
         freq:   frequency in Hz (float or list of floats)
         sTime:  UTC starting time of observations (datetime object)
         eTime:  UTC ending time of observations (datetime object)
+
         """
 
         df = self.df_unfiltered.copy()
@@ -305,8 +308,11 @@ class Filter(object):
     def __init__(self,N=6,Tc_min = 3.3333,btype='low',fs=1.):
         """
         Generate a digital filter that can be applied to the data.
+
         This routine uses the scipy.signal.butter Butterworth filter.
 
+        Parameters
+        ----------
         N:      Filter order.
         Tc_min: Cuttoff in minutes. Scalar value for 'low' and 'high'
                 filter btypes; 2-element iterable for 'bandpass' and 
@@ -908,6 +914,8 @@ class GrapeMultiplot(object):
         """
         Plot a time series with traces from multiple instruments overlaid on the same plot.
 
+        Parameters
+        ----------
         data_set:   Name of data set to plot (string)
         params:     List of parameter keys to plot. A new subplot will be created for each param.
         xkey:       X-axis parameter.
@@ -929,6 +937,7 @@ class GrapeMultiplot(object):
         legend:     Plot legend with name of each receiving station.
         solar_lat:  Latitude for computing sunrise/sunset times.
         solar_lon:  Longitude for computing sunrise/sunset times.
+
         """
 
         data = self.gds
