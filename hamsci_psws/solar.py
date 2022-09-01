@@ -9,9 +9,10 @@ Written by Nathaniel Frissell, August 2022.
 import datetime
 import pytz
 import numpy as np
+import matplotlib as mpl
 from . import calcSun
 
-def solar_time(datetime_utc: datetime.datetime, lon: float) -> datetime.datetime:
+def solar_time(datetime_utc,lon):
     """
     Convert UTC datetime object into Local Mean Time.
 
