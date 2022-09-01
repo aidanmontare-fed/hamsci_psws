@@ -192,8 +192,10 @@ def read_goes(
     Currently, 1-m averaged x-ray spectrum in two bands
     (0.5-4.0 A and 1.0-8.0 A).
 
-    Example # TODO format for readthedocs
+    Example 
     -------
+
+    # TODO format for readthedocs
         goes_data = read_goes(datetime.datetime(2014,6,21))
       
     written by N.A. Frissell, 6 Sept 2014

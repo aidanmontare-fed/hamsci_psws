@@ -11,20 +11,21 @@ Based on R.J. Barnes radar.pro
 
 """
 import logging
+from typing import Optional
 from numpy import degrees, radians, cos, sin, tan, arcsin, arccos, arctan, arctan2, sqrt, pi, array
 
 
-def geodToGeoc(lat,lon,inverse=False):
+def geodToGeoc(lat: float,lon: float, inverse: bool = False) -> tuple[float, float, float]:
     """Converts position from geodetic to geocentric and vice-versa.
     Based on the IAU 1964 oblate spheroid model of the Earth.
 
     Parameters
     ----------
-    lat : float
+    lat
         latitude [degree]
-    lon : float
+    lon
         longitude [degree]
-    inverse : Optional[bool]
+    inverse
         inverse conversion.  Default is false.
 
     Returns
@@ -57,7 +58,7 @@ def geodToGeoc(lat,lon,inverse=False):
     return latOut, lonOut, Re
 
 
-def geodToGeocAzEl(lat,lon,az,el,inverse=False):
+def geodToGeocAzEl(lat: float, lon: float, az: float, el: float ,inverse: bool = False) -> tuple[float, float, float, float, float]:
     """Converts azimuth and elevation from geodetic to geocentric (and vice-versa)
     
     Converts pointing azimuth and elevation measured with respect to the local horizon 
@@ -66,15 +67,15 @@ def geodToGeocAzEl(lat,lon,az,el,inverse=False):
 
     Parameters
     ----------
-    lat : float
+    lat
         latitude [degree]
-    lon : float
+    lon
         longitude [degree]
-    az : float
+    az
         azimuth [degree, N]
-    el : float
+    el
         elevation [degree]
-    inverse : Optional[bool]
+    inverse
         inverse conversion
 
     Returns
@@ -134,7 +135,7 @@ def geodToGeocAzEl(lat,lon,az,el,inverse=False):
     return latOut, lonOut, Re, azOut, elOut
 
 
-def gspToGcar(X, Y, Z, inverse=False):
+def gspToGcar(X: float, Y: float, Z: float, inverse: bool = False) -> tuple[float, float, float]:
     """Converts a position from global spherical (geocentric) to global cartesian (and vice-versa).
 
     The global cartesian coordinate system is defined as:
@@ -147,13 +148,13 @@ def gspToGcar(X, Y, Z, inverse=False):
 
     Parameters
     ----------
-    X : float
+    X
         latitude [degree] or global cartesian X [km]
-    Y : float
+    Y
         longitude [degree] or global cartesian Y [km]
-    Z : float
+    Z
         distance from center of the Earth [km] or global cartesian Z [km]
-    inverse : Optional[bool]
+    inverse
         inverse conversion
 
     Returns
@@ -181,7 +182,7 @@ def gspToGcar(X, Y, Z, inverse=False):
     return xOut, yOut, zOut
 
 
-def gcarToLcar(X, Y, Z, lat, lon, rho , inverse=False):
+def gcarToLcar(X: float, Y: float, Z: float, lat: float, lon: float, rho: float, inverse: bool = False) -> tuple[float, float, float]:
     """Converts a position from global cartesian to local cartesian (and vice-versa).
 
     The global cartesian coordinate system is defined as:
@@ -200,19 +201,19 @@ def gcarToLcar(X, Y, Z, lat, lon, rho , inverse=False):
 
     Parameters
     ----------
-    X : float
+    X
         global cartesian X [km] or local cartesian X [km]
-    Y : flaot
+    Y
         global cartesian Y [km] or local cartesian Y [km]
-    Z : float
+    Z
         global cartesian Z [km] or local cartesian Z [km]
-    lat : float
+    lat
         geocentric latitude [degree] of local cartesian system origin
-    lon : float
+    lon
         geocentric longitude [degree] of local cartesian system origin
-    rho : float
+    rho
         distance from center of the Earth [km] of local cartesian system origin
-    inverse : Optional[bool]
+    inverse
         inverse conversion
 
     Returns
@@ -263,7 +264,7 @@ def gcarToLcar(X, Y, Z, lat, lon, rho , inverse=False):
     return xOut, yOut, zOut
 
 
-def lspToLcar(X, Y, Z, inverse=False):
+def lspToLcar(X: float, Y: float, Z: float, inverse: bool = False) -> tuple[float, float, float]:
     """Converts a position from local spherical to local cartesian (and vice-versa).
 
     The local spherical coordinate system is defined as:
@@ -283,13 +284,13 @@ def lspToLcar(X, Y, Z, inverse=False):
 
     Parameters
     ----------
-    X : float
+    X
         azimuth [degree, N] or local cartesian X [km]
-    Y : float
+    Y
         elevation [degree] or local cartesian Y [km]
-    Z : float
+    Z
         distance origin [km] or local cartesian Z [km]
-    inverse : Optional[bool]
+    inverse
         inverse conversion
 
     Returns
@@ -324,9 +325,17 @@ def lspToLcar(X, Y, Z, inverse=False):
 
 
 # *************************************************************
-def calcDistPnt(origLat, origLon, origAlt, \
-            dist=None, el=None, az=None, \
-            distLat=None, distLon=None, distAlt=None):
+def calcDistPnt(
+    origLat: float,
+    origLon: float,
+    origAlt: float,
+    dist: Optional[float] = None,
+    el: Optional[float] = None,
+    az: Optional[float] = None,
+    distLat: Optional[float] = None,
+    distLon: Optional[float] = None,
+    distAlt: Optional[float] = None
+) -> dict:
     """Calculates the coordinates or distance,elevation,azimuth of a point given a point of origin and distance,elevation,azimuth or distant point coordinates
     
     Calculate: 
@@ -340,23 +349,23 @@ def calcDistPnt(origLat, origLon, origAlt, \
 
     Parameters
     ----------
-    origLat : float
+    origLat
         geographic latitude of point of origin [degree]
-    origLon : float
+    origLon
         geographic longitude of point of origin [degree]
-    origAlt : float
+    origAlt
         altitude of point of origin [km]
-    dist : Optional[float]
+    dist
         distance to point [km]
-    el : Optional[float]
+    el
         azimuth [degree]
-    az : Optional[float]
+    az
         elevation [degree]
-    distLat : Optional[float]
+    distLat
         latitude [degree] of distant point
-    distLon : Optional[float]
+    distLon
         longitude [degree] of distant point
-    distAlt : Optional[float]
+    distAlt
         altitide [km] of distant point
 
     Returns
@@ -458,28 +467,35 @@ def calcDistPnt(origLat, origLon, origAlt, \
     return dictOut
 
 
-def greatCircleMove(origLat, origLon, dist, az, alt=0,Re=6371.):
+def greatCircleMove(
+    origLat: float,
+    origLon: float,
+    dist: float,
+    az: float,
+    alt: float = 0,
+    Re: float = 6371.
+) -> list[float]:
     """Calculates the coordinates of an end point along a great circle path 
     given the original coordinates, distance, azimuth, and altitude.
 
     Parameters
     ----------
-    origLat : float
+    origLat
         latitude [degree]
-    origLon : float
+    origLon
         longitude [degree]
-    dist : float
+    dist
         distance [km]
-    az : float
+    az
         azimuth [deg]
-    alt : Optional[float]
+    alt
         altitude [km] (added to default Re = 6378.1 km)
-    Re : Optional[float]
+    Re
         Earth radius, default 6371.
 
     Returns
     -------
-    list : list
+    list : list[float]
         latitude, longitude in deg
 
     """
@@ -516,19 +532,19 @@ def greatCircleMove(origLat, origLon, dist, az, alt=0,Re=6371.):
     return (ret_lat,ret_lon)
 
 
-def greatCircleAzm(lat1,lon1,lat2,lon2):
+def greatCircleAzm(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculates the azimuth from the coordinates of a start point to an end point
     along a great circle path.
 
     Parameters
     ----------
-    lat1 : float
+    lat1
         latitude [deg]
-    lon1 : float
+    lon1
         longitude [deg]
-    lat2 : float
+    lat2
         latitude [deg]
-    lon2 : float
+    lon2
         longitude [deg]
 
     Returns
@@ -546,18 +562,18 @@ def greatCircleAzm(lat1,lon1,lat2,lon2):
     return azm
 
 
-def greatCircleDist(lat1,lon1,lat2,lon2):
+def greatCircleDist(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculates the distance in radians along a great circle path between two points.
 
     Parameters
     ----------
-    lat1 : float
+    lat1
         latitude [deg]
-    lon1 : float
+    lon1
         longitude [deg]
-    lat2 : float
+    lat2
         latitude [deg]
-    lon2 : float
+    lon2
         longitude [deg]
 
     Returns
@@ -576,7 +592,14 @@ def greatCircleDist(lat1,lon1,lat2,lon2):
 
     return radDist
 
-def midpoint(lat1,lon1,lat2,lon2,alt=0.,Re=6371.):
+def midpoint(
+    lat1: float,
+    lon1: float,
+    lat2: float,
+    lon2: float,
+    alt: float = 0.,
+    Re: float = 6371.
+) -> tuple[float, float]:
     """Calculates the short path midpoint lat/lon along a great circle path between two points."""
 
     dist            = greatCircleDist(lat1,lon1,lat2,lon2)*(Re+alt)
