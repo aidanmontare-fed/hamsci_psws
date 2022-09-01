@@ -5,10 +5,10 @@ keywords in pyproject?
 module docstrings
 more comprehensive readme
 type hints
+pep 561
 standard docstrings
 why are we importing all the things in __init__?
 tests
-generating documentation
 why scripts/filelist.txt and ./filelist.txt?
 linting
 why couldn't I read requirements.txt?
@@ -28,3 +28,4 @@ mathjax docs?
 remove the short titles from the table in the api docs
 get table in goes.py working in docs
 get lists separated without bullets working in docs
+fix formating in many doc strings
