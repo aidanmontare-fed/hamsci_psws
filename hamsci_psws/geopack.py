@@ -10,7 +10,6 @@ Based on J.M. Ruohoniemi's geopack
 Based on R.J. Barnes radar.pro
 
 """
-import logging
 from typing import Optional
 from numpy import degrees, radians, cos, sin, tan, arcsin, arccos, arctan, arctan2, sqrt, pi, array
 
@@ -377,7 +376,8 @@ def calcDistPnt(
     
     # If all the input parameters (keywords) are set to 0, show a warning, and default to fint distance/azimuth/elevation
     if dist is None and el is None and az is None:
-        assert None not in [distLat, distLon, distAlt], logging.error('Not enough keywords.')
+        if distLat is None or distLon is None or distAlt is None:
+            raise Exception('calcDistPnt: Warning: Not enough keywords.')
 
         # Convert point of origin from geodetic to geocentric
         (gcLat, gcLon, origRe) = geodToGeoc(origLat, origLon)
@@ -394,7 +394,8 @@ def calcDistPnt(
         dist = sqrt( dX**2 + dY**2 + dZ**2 )
 
     elif distLat is None and distLon is None and distAlt is None:
-        assert None not in [dist, el, az], logging.error('Not enough keywords.')
+        if dist is None or el is None or az is None:
+            raise Exception('calcDistPnt: Warning: Not enough keywords.')
 
         # convert pointing azimuth and elevation to geocentric
         (gcLat, gcLon, origRe, gaz, gel) = geodToGeocAzEl(origLat, origLon, az, el)
@@ -410,7 +411,8 @@ def calcDistPnt(
         distRe = Re
 
     elif dist is None and distAlt is None and az is None:
-        assert None not in [distLat, distLon, el], logging.error('Not enough keywords.')
+        if distLat is None or distLon is None or el is None:
+            raise Exception('calcDistPnt: Warning: Not enough keywords.')
 
         # Convert point of origin from geodetic to geocentric
         (gcLat, gcLon, origRe) = geodToGeoc(origLat, origLon)
@@ -436,7 +438,8 @@ def calcDistPnt(
         dist = Dref*sin(theta)/cos(theta+radians(gel))
 
     elif distLat is None and distLon is None and dist is None:
-        assert None not in [distAlt, el, az], logging.error('Not enough keywords.')
+        if distAlt is None or el is None or az is None:
+            raise Exception('calcDistPnt: Warning: Not enough keywords.')
 
         # convert pointing azimuth and elevation to geocentric
         (gcLat, gcLon, origRe, gaz, gel) = geodToGeocAzEl(origLat, origLon, az, el)
@@ -457,7 +460,7 @@ def calcDistPnt(
         distAlt = rho - distRe
 
     else:
-        return
+        return None
     
     # Fill output dictionary
     dictOut = {'origLat': origLat, 'origLon': origLon, 'origAlt': origAlt, \
