@@ -15,7 +15,7 @@ from typing import Optional
 from numpy import degrees, radians, cos, sin, tan, arcsin, arccos, arctan, arctan2, sqrt, pi, array
 
 
-def geodToGeoc(lat: float,lon: float, inverse: bool = False) -> tuple[float, float, float]:
+def geodToGeoc(lat: float, lon: float, inverse: bool = False) -> tuple[float, float, float]:
     """Converts position from geodetic to geocentric and vice-versa.
     Based on the IAU 1964 oblate spheroid model of the Earth.
 
@@ -335,7 +335,7 @@ def calcDistPnt(
     distLat: Optional[float] = None,
     distLon: Optional[float] = None,
     distAlt: Optional[float] = None
-) -> dict:
+) -> Optional[dict[str, float]]:
     """Calculates the coordinates or distance,elevation,azimuth of a point given a point of origin and distance,elevation,azimuth or distant point coordinates
     
     Calculate: 
@@ -474,7 +474,7 @@ def greatCircleMove(
     az: float,
     alt: float = 0,
     Re: float = 6371.
-) -> list[float]:
+) -> tuple[float, float]:
     """Calculates the coordinates of an end point along a great circle path 
     given the original coordinates, distance, azimuth, and altitude.
 
@@ -495,7 +495,7 @@ def greatCircleMove(
 
     Returns
     -------
-    list : list[float]
+    tuple[float]
         latitude, longitude in deg
 
     """
@@ -559,7 +559,7 @@ def greatCircleAzm(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     x     = cos(lat1)*sin(lat2)-sin(lat1)*cos(lat2)*cos(dlon)
     azm   = degrees(arctan2(y,x))
 
-    return azm
+    return azm # type: ignore[no-any-return]  # mypy doesn't seem to recognize some numpy functions
 
 
 def greatCircleDist(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -590,7 +590,7 @@ def greatCircleDist(lat1: float, lon1: float, lat2: float, lon2: float) -> float
     a    = sin(dlat/2.)*sin(dlat/2.)+cos(lat1)*cos(lat2)*sin(dlon/2.)*sin(dlon/2.)
     radDist = 2.*arctan2(sqrt(a),sqrt(1.-a))
 
-    return radDist
+    return radDist # type: ignore[no-any-return]  # mypy doesn't seem to recognize some numpy functions
 
 def midpoint(
     lat1: float,
