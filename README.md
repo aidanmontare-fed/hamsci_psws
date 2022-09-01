@@ -1,8 +1,6 @@
 # hamsci_psws
 
-[![Documentation Status](https://readthedocs.org/projects/hamsci-psws-test/badge/?version=latest)](https://hamsci-psws-test.readthedocs.io/en/latest/?badge=latest)
-
-**TODO update badges for production environment**
+[![Documentation Status](https://readthedocs.org/projects/hamsci-psws/badge/?version=latest)](https://hamsci-psws.readthedocs.io/en/latest/?badge=latest)
 
 
 Plotting data from Grape V1 receivers.
