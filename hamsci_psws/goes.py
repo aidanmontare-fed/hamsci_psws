@@ -33,7 +33,7 @@ find_flares     find flares in a certain class
 """
 
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 logging.basicConfig(level=logging.INFO)
 import os
 import datetime
@@ -53,11 +53,12 @@ import pandas as pd
 import netCDF4
 import warnings
 
+if TYPE_CHECKING:
+    import matplotlib.axis
+
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
-
-goes_table: list = []
 
 
 def add_months(sourcedate: datetime.date, months: int = 1) -> datetime.date:
@@ -87,7 +88,7 @@ def dtGreg_to_datetime(dtg: datetime.datetime) -> datetime.datetime:
 def download_url(
     url: str,
     pattern: Optional[str] = None,
-    data_dir: Optional[str] = None,
+    data_dir: str = "",
     sTime: Optional[datetime.datetime] = None,
     eTime: Optional[datetime.datetime] = None
 ) -> list[str]: # TODO pattern objects?
@@ -159,12 +160,14 @@ def download_url(
             logging.info('   Download ERROR.')
     return file_paths
 
+ReadGoesReturnType = dict[str, Any]
+
 def read_goes(
     sTime: datetime.datetime,
     eTime: Optional[datetime.datetime] = None,
     sat_nr: int = 15,
-    data_dir='data_goes'
-) -> dict:
+    data_dir: str = 'data_goes'
+) -> ReadGoesReturnType:
     """Download GOES X-Ray Flux data from the NOAA FTP Site and return a
     dictionary containing the metadata and a dataframe.
 
@@ -240,7 +243,7 @@ def read_goes(
         df_xray     = None
         df_orbit    = None
 
-        data_dict   = {}
+        data_dict: dict[str, Any]   = {}
         data_dict['metadata']               = {}
         data_dict['metadata']['variables']  = {}
 
@@ -303,11 +306,12 @@ def read_goes(
                         pass
 
         # Concatenate dataframes from each file into single dataframes.
-        df_xray     = pd.concat(df_xray)
-        df_orbit    = pd.concat(df_orbit)
+        df_xray: pd.DataFrame     = pd.concat(df_xray) # type: ignore[no-redef]  # reuse variable name
+        df_orbit: pd.DataFrame    = pd.concat(df_orbit) # type: ignore[no-redef]  # reuse variable name # TODO should we really be doing this, or is a new variable somewhere appropriate?
 
         # Set -99999 to NaN.
         keys    = ['A_AVG','B_AVG']
+        reveal_type(df_xray)
         for key in keys:
             tf  = df_xray[key]  == -99999
             df_xray[key][tf]    = np.nan
@@ -451,16 +455,17 @@ def read_goes(
     return data_dict
 
 def goes_plot_hr(
-    goes_data: dict,
+    goes_data: ReadGoesReturnType,
     ax: matplotlib.axes.Axes,
     var_tags: list[str] = ['B_AVG'],
-    xkey: str = 'ut_hr', xlim=(0, 24),
+    xkey: str = 'ut_hr',
+    xlim: tuple[float, float] = (0, 24),
     ymin: float = 1e-9, # TODO not used
     ymax: float = 1e-2, # TODO not used
     legendSize: int = 10,
     legendLoc: Optional[int] = None,
     labels: Optional[list[str]] = None,
-    **kwargs
+    **kwargs: Any
 ) -> None:
     """Plot GOES X-Ray Data.
 
@@ -535,7 +540,7 @@ def goes_plot_hr(
 #    ax.set_title(title)
 
 def goes_plot(
-    goes_data: dict,
+    goes_data: ReadGoesReturnType,
     sTime: Optional[datetime.datetime] = None,
     eTime: Optional[datetime.datetime] = None,
     var_tags: list[str] = ['B_AVG'],
@@ -543,9 +548,9 @@ def goes_plot(
     ymin: float = 1e-9,
     ymax: float = 1e-2,
     legendSize: Optional[float] = None,
-    legendLoc=None,
-    ax=None,
-    **kwargs
+    legendLoc: Optional[Union[str, tuple[float, float]]] = None,
+    ax: Optional[matplotlib.axis.Axis] = None,
+    **kwargs: Any
 ) -> matplotlib.figure.Figure:
     """Plot GOES X-Ray Data.
 
@@ -661,7 +666,7 @@ def __split_sci(value: float) -> tuple[float, float]:
 
     """
     s   = '{0:e}'.format(value)
-    s   = s.split('e')
+    s   = s.split('e') # type: ignore[assignment]  # we reuse s here
     return (float(s[0]),float(s[1]))
 
 
@@ -752,12 +757,12 @@ def flare_value(flare_class: str) -> float:
 
 
 def find_flares(
-    goes_data: dict,
+    goes_data: ReadGoesReturnType,
     window_minutes: int = 60,
     min_class: str = 'X1',
     sTime: Optional[datetime.datetime] = None,
     eTime: Optional[datetime.datetime] = None,
-    tmp_dir: str = 'data'
+    tmp_dir: str = 'data' # TODO unused
 ) -> pd.DataFrame:
     """Find flares of a minimum class in a GOES data dict created by read_goes().
     This works with 1-minute averaged GOES data.
