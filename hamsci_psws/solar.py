@@ -6,10 +6,16 @@ Convenience module for select solar calculations and plotting routines.
 Written by Nathaniel Frissell, August 2022.
 """
 
+from __future__ import annotations
+
 import datetime
 import pytz
 import numpy as np
 from . import calcSun
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import matplotlib.axis
 
 def solar_time(datetime_utc: datetime.datetime, lon: float) -> datetime.datetime:
     """
@@ -27,29 +33,38 @@ def solar_time(datetime_utc: datetime.datetime, lon: float) -> datetime.datetime
     lmt = lmt.replace(tzinfo=None)
     return lmt
 
-def utc_time(datetime_lmt,lon):
+def utc_time(datetime_lmt: datetime.datetime, lon: float) -> datetime.datetime:
     """
     Convert datetime object from Local Mean Time to UTC.
 
     Parameters
     ----------
-    datetime_lmt: Datetime object in Local Mean Time.
-    lon:          Geographic longitude of observation.
+    datetime_lmt
+        Datetime object in Local Mean Time.
+    lon
+        Geographic longitude of observation.
     """
     utc = datetime_lmt - datetime.timedelta(hours=(lon/15.))
     utc = utc.replace(tzinfo=pytz.UTC)
     return utc
 
-def sunAzEl(dates,lat,lon):
+def sunAzEl(
+    dates: list[datetime.datetime],
+    lat: float,
+    lon: float
+) -> tuple[list[float], list[float]]:
     """
     Return the azimuths and elevation angles of the Sun for
     a list of UTC dates and lat/lon location.
 
     Parameters
     ----------
-    dates:  List of UTC datetime objects.
-    lat:    Geographic latitude of location.
-    lon:    Geographic longitude of location.
+    dates
+        List of UTC datetime objects.
+    lat
+        Geographic latitude of location.
+    lon
+        Geographic longitude of location.
     """
     azs, els = [], []
     for date in dates:
@@ -61,21 +76,39 @@ def sunAzEl(dates,lat,lon):
         els.append(el)
     return azs,els
 
-def add_terminator(sTime,eTime,lat,lon,ax,color='0.7',alpha=0.3,xkey='UTC',
-        resolution=datetime.timedelta(minutes=1),**kw_args):
+def add_terminator(
+    sTime: datetime.datetime,
+    eTime: datetime.datetime,
+    lat: float,
+    lon: float,
+    ax: matplotlib.axis.Axis,
+    color: str = '0.7',
+    alpha: float = 0.3,
+    xkey: str = 'UTC',
+    resolution: datetime.timedelta = datetime.timedelta(minutes=1),
+    **kw_args: Any
+) -> None:
     """
     Shade the nighttime region on a time series plot.
 
     Parameters
     ----------
-    sTime:   UTC start time of time series plot in datetime.datetime format
-    eTime:   UTC end time of time series plot in datetime.datetime format
-    lat:     latitude for solar terminator calculation
-    lon:     longitude for solar terminator calculation
-    ax:      matplotlib axis object to apply shading to.
-    color:   color of nighttime shading
-    alpha:   alpha of nighttime shading
-    kw_args: additional keywords passed to ax.axvspan
+    sTime
+        UTC start time of time series plot in datetime.datetime format
+    eTime
+        UTC end time of time series plot in datetime.datetime format
+    lat
+        latitude for solar terminator calculation
+    lon
+        longitude for solar terminator calculation
+    ax
+        matplotlib axis object to apply shading to.
+    color
+        color of nighttime shading
+    alpha
+        alpha of nighttime shading
+    kw_args
+        additional keywords passed to ax.axvspan
     """
     if xkey == 'LMT':
         sTime = utc_time(sTime,lon)

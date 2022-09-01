@@ -16,20 +16,19 @@ Contributions by:
 """
 
 import os
-import sys
 import glob
 import string
+from typing import Any, Literal, Optional, Union
 letters = string.ascii_lowercase
 
 import datetime
-import pytz
 
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
 import xarray as xr
 
 import plotly.express as px
-import plotly.graph_objects as go
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -37,15 +36,13 @@ import matplotlib.pyplot as plt
 from tqdm.auto import tqdm
 tqdm.pandas(dynamic_ncols=True)
 
-from scipy.interpolate import interp1d
 from scipy import signal
 
-from . import locator
 from . import solar
 from . import goes
 from . import gen_lib as gl
 
-prm_dict = {}
+prm_dict: dict[str, dict[str, Any]] = {}
 
 pkey = 'Freq'
 prm_dict[pkey] = {}
@@ -94,7 +91,7 @@ prm_dict[pkey]['label'] = 'Latitude'
 
 class DataInventory(object):
     def __init__(self,nodes=None,G=None,freq=None,sTime=None,eTime=None,
-                    data_path='data',suffix='.csv'):
+                    data_path: str = 'data',suffix: str = '.csv'):
         """
         Create an inventory of availble grape1 data in the data_path.
         Inventory will be dataframe df attached to DataInventory object.
@@ -144,7 +141,7 @@ class DataInventory(object):
 
         df = self.filter(nodes=nodes,G=G,freq=freq,sTime=sTime,eTime=eTime)
 
-    def filter(self,nodes=None,G=None,freq=None,sTime=None,eTime=None):
+    def filter(self,nodes: Optional[Union[int, list[int]]] = None,G: Optional[Union[str, list[str]]] = None,freq: Optional[Union[float, list[float]]] = None,sTime: Optional[datetime.datetime] = None,eTime : Optional[datetime.datetime] = None) -> pd.DataFrame:
         """
         Filter data by parameters. The filtered results will be returned
         and stored in self.df. Unfiltered results will always be available
@@ -211,14 +208,14 @@ class DataInventory(object):
 
         return df
 
-    def get_nodes(self):
+    def get_nodes(self) -> list:
         """
         Return a list of all of the unique node numbers in the inventory.
         """
         nodes = self.df['Node'].unique().tolist()
         return nodes
     
-    def plot_inventory(self,html_out='inventory.html'):
+    def plot_inventory(self, html_out: str = 'inventory.html') -> None:
         """
         Generate a plot of the data inventory using plotly.
 
@@ -249,7 +246,7 @@ class DataInventory(object):
             fig.write_html(html_out, include_plotlyjs="cdn")
 
 class GrapeNodes(object):
-    def __init__(self,fpath='nodelist.csv',logged_nodes=None):
+    def __init__(self, fpath: str = 'nodelist.csv',logged_nodes: list[str] = None):
         """
         Create an object with information about known Grape1 nodes from a nodelist.csv.
 
@@ -267,7 +264,7 @@ class GrapeNodes(object):
         if logged_nodes:
             nodes_df = self.update_status(logged_nodes)
         
-    def update_status(self,logged_nodes):
+    def update_status(self,logged_nodes: list[str]) -> pd.DataFrame:
         """
         Updates the nodes_df dataframe with with information regarding which nodes we have data from.
 
@@ -279,7 +276,7 @@ class GrapeNodes(object):
         self.nodes_df = nodes_df
         return nodes_df
     
-    def status_table(self):
+    def status_table(self) -> pd.DataFrame:
         """
         Returns the nodes_df data frame with nodes that we have data for highlighted in green.
         """
@@ -289,8 +286,8 @@ class GrapeNodes(object):
         nodes_df = nodes_df.style.apply(lambda s: color)
         return nodes_df
     
-    def plot_map(self,color="Status",projection='albers usa',
-            width=1200,height=900):
+    def plot_map(self,color: str = "Status", projection: str = 'albers usa',
+            width: int = 1200, height: int = 900) -> None:
         """
         Use plotly to generate a map of Grape1 nodes.
         """
@@ -305,7 +302,7 @@ class GrapeNodes(object):
         fig.show()
 
 class Filter(object):
-    def __init__(self,N=6,Tc_min = 3.3333,btype='low',fs=1.):
+    def __init__(self,N: int = 6,Tc_min: float = 3.3333,btype: str = 'low',fs: float = 1.):
         """
         Generate a digital filter that can be applied to the data.
 
@@ -334,7 +331,7 @@ class Filter(object):
         self.a  = a
         self.b  = b
         
-    def filter_data(self,data):
+    def filter_data(self, data: ArrayLike) -> ArrayLike:
         """
         Apply the filter using scipy.signal.filtfilt to data.
 
@@ -349,7 +346,7 @@ class Filter(object):
 
         return filtered
     
-    def plotResponse(self):
+    def plotResponse(self) -> None:
         """
         Plot the magnitude and phase response of the filter.
         """
@@ -407,8 +404,8 @@ class Grape1Data(object):
             self.data = data
             self.meta = meta
         
-    def __load_raw(self,node,freq,sTime,eTime,data_path,
-                 lat,lon,call_sign,solar_lat,solar_lon,inventory,grape_nodes):
+    def __load_raw(self,node: str,freq: float,sTime: datetime.datetime,eTime: datetime.datetime,data_path: str,
+                 lat: Optional[float],lon: Optional[float],call_sign: str,solar_lat: Optional[float],solar_lon: Optional[float],inventory: DataInventory,grape_nodes) -> None:
         
         if inventory is None:
             inventory = DataInventory(data_path=data_path)
@@ -500,7 +497,7 @@ class Grape1Data(object):
         meta['solar_lon']   = solar_lon
         self.meta      = meta
 
-    def process_data(self,profile='standard'):
+    def process_data(self,profile='standard') -> None:
         tic_0 = datetime.datetime.now()
         print('Processing data using "{!s}" profile...'.format(profile))
         print('')
@@ -589,8 +586,8 @@ class Grape1Data(object):
         print('')
         print('Total Processing Time: {!s}'.format(toc_0-tic_0))
     
-    def resample_data(self,resample_rate,on='UTC',method='linear_interp',
-                          data_set_in='raw',data_set_out='resampled'):
+    def resample_data(self,resample_rate,on: str = 'UTC',method: Literal["linear_interp", "mean"] = 'linear_interp',
+                          data_set_in: str = 'raw',data_set_out: str = 'resampled') -> None:
         
         df   = self.data[data_set_in]['df'].copy()
 
@@ -650,9 +647,9 @@ class Grape1Data(object):
         tmp['Ts']    = resample_rate.total_seconds()
         self.data[data_set_out] = tmp
 
-    def filter_data(self,N,Tc_min,btype,
-                    data_set_in='resampled',data_set_out='filtered',
-                    params=['Freq','Vpk','Power_dB']):
+    def filter_data(self,N: int,Tc_min: float,btype,
+                    data_set_in: str = 'resampled',data_set_out: str = 'filtered', # TODO these could have stricter types
+                    params: list[str] = ['Freq','Vpk','Power_dB']) -> None:
         
         df     = self.data[data_set_in]['df'].copy()
 
@@ -679,7 +676,7 @@ class Grape1Data(object):
         tmp['label'] = 'Butterworth Filtered Data\n(N={!s}, Tc={!s} min, Type: {!s})'.format(N, Tc_min, btype)
         self.data[data_set_out] = tmp                            
 
-    def calculate_solar_time(self,data_set,solar_lon=None):
+    def calculate_solar_time(self,data_set,solar_lon: Optional[float] = None):
         if solar_lon is None:
             solar_lon = self.meta.get('solar_lon')
         else:
@@ -696,7 +693,7 @@ class Grape1Data(object):
         df   = df[keys]
         self.data[data_set]['df'] = df
 
-    def calculate_timeDateParameter_array(self,data_set,param='Freq',xkey='LMT'):
+    def calculate_timeDateParameter_array(self,data_set,param: str = 'Freq',xkey: str = 'LMT'): # TODO these could have stricter types
         df          = self.data[data_set]['df']
         time_vec    = df[xkey]
 

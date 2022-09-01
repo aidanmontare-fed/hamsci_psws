@@ -9,7 +9,7 @@ alpha_upper = np.char.array([x for x in string.ascii_uppercase])
 alpha_lower = np.char.array([x for x in string.ascii_lowercase])
 nr_str      = np.char.array(['{!s}'.format(x) for x in range(10)])
 
-def inx_alpha(inx):
+def inx_alpha(inx: str) -> bool:
     """
     Determine if a string position should be alpha in
     a grid square.
@@ -23,7 +23,7 @@ def inx_alpha(inx):
     return alpha
 
 @np.vectorize
-def grid_valid(grid):
+def grid_valid(grid: list) -> bool:
     """
     Determine if a gridsquare is valid.
     """

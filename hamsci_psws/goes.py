@@ -33,6 +33,7 @@ find_flares     find flares in a certain class
 """
 
 import logging
+from typing import Optional
 logging.basicConfig(level=logging.INFO)
 import os
 import datetime
@@ -56,10 +57,10 @@ pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
-goes_table = []
+goes_table: list = []
 
 
-def add_months(sourcedate,months=1):
+def add_months(sourcedate: datetime.date, months: int = 1) -> datetime.date:
     """Add 1 month to a datetime object.
 
     Parameters
@@ -75,15 +76,21 @@ def add_months(sourcedate,months=1):
     day     = min(sourcedate.day,calendar.monthrange(year,month)[1])
     return datetime.date(year,month,day)
 
-def ut_hours(dt_obj):
+def ut_hours(dt_obj: datetime.datetime) -> float:
     ut_hr   = dt_obj.hour + dt_obj.minute/60. + dt_obj.second/3600.
     return ut_hr
 
-def dtGreg_to_datetime(dtg):
+def dtGreg_to_datetime(dtg: datetime.datetime) -> datetime.datetime:
     pdt = datetime.datetime(dtg.year,dtg.month,dtg.day,dtg.hour,dtg.minute,dtg.second)
     return pdt
 
-def download_url(url,pattern=None,data_dir=None,sTime=None,eTime=None):
+def download_url(
+    url: str,
+    pattern: Optional[str] = None,
+    data_dir: Optional[str] = None,
+    sTime: Optional[datetime.datetime] = None,
+    eTime: Optional[datetime.datetime] = None
+) -> list[str]: # TODO pattern objects?
     """
     Scrape URL for links and download files matching a pattern.
 
@@ -152,18 +159,23 @@ def download_url(url,pattern=None,data_dir=None,sTime=None,eTime=None):
             logging.info('   Download ERROR.')
     return file_paths
 
-def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data_goes'):
+def read_goes(
+    sTime: datetime.datetime,
+    eTime: Optional[datetime.datetime] = None,
+    sat_nr: int = 15,
+    data_dir='data_goes'
+) -> dict:
     """Download GOES X-Ray Flux data from the NOAA FTP Site and return a
     dictionary containing the metadata and a dataframe.
 
     Parameters
     ----------
-    sTime : datetime.datetime
+    sTime
         Starting datetime for data.
-    eTime : Optional[datetime.datetime]
+    eTime
         Ending datetime for data.  If None, eTime will be set to sTime
         + 1 day.
-    sat_nr : Optional[int]
+    sat_nr
         GOES Satellite number.  Defaults to 15.
         A list of GOES satellites and their operational time periods is
         available at https://www.noaasis.noaa.gov/GOES/goes_overview.html.
@@ -180,7 +192,7 @@ def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data_goes'):
     Currently, 1-m averaged x-ray spectrum in two bands
     (0.5-4.0 A and 1.0-8.0 A).
 
-    Example
+    Example # TODO format for readthedocs
     -------
         goes_data = read_goes(datetime.datetime(2014,6,21))
       
@@ -436,8 +448,18 @@ def read_goes(sTime,eTime=None,sat_nr=15,data_dir='data_goes'):
 
     return data_dict
 
-def goes_plot_hr(goes_data,ax,var_tags = ['B_AVG'],xkey='ut_hr',xlim=(0,24),ymin=1e-9,ymax=1e-2,
-        legendSize=10,legendLoc=None,labels=None,**kwargs):
+def goes_plot_hr(
+    goes_data: dict,
+    ax: matplotlib.axes.Axes,
+    var_tags: list[str] = ['B_AVG'],
+    xkey: str = 'ut_hr', xlim=(0, 24),
+    ymin: float = 1e-9, # TODO not used
+    ymax: float = 1e-2, # TODO not used
+    legendSize: int = 10,
+    legendLoc: Optional[int] = None,
+    labels: Optional[list[str]] = None,
+    **kwargs
+) -> None:
     """Plot GOES X-Ray Data.
 
     Parameters
@@ -510,16 +532,28 @@ def goes_plot_hr(goes_data,ax,var_tags = ['B_AVG'],xkey='ut_hr',xlim=(0,24),ymin
     title   = ' '.join([md['institution'],md['satellite_id'],'-',md['instrument']])
 #    ax.set_title(title)
 
-def goes_plot(goes_data,sTime=None,eTime=None,var_tags = ['B_AVG'],labels=None,ymin=1e-9,ymax=1e-2,legendSize=None,legendLoc=None,ax=None,**kwargs):
+def goes_plot(
+    goes_data: dict,
+    sTime: Optional[datetime.datetime] = None,
+    eTime: Optional[datetime.datetime] = None,
+    var_tags: list[str] = ['B_AVG'],
+    labels: Optional[list[str]] = None,
+    ymin: float = 1e-9,
+    ymax: float = 1e-2,
+    legendSize: Optional[float] = None,
+    legendLoc=None,
+    ax=None,
+    **kwargs
+) -> matplotlib.figure.Figure:
     """Plot GOES X-Ray Data.
 
     Parameters
     ----------
-    goes_data : dict
+    goes_data
         data dictionary returned by read_goes()
-    sTime : Optional[datetime.datetime]
+    sTime
         object for start of plotting.
-    eTime : Optional[datetime.datetime]
+    eTime
         object for end of plotting.
     ymin : Optional[float]
         Y-Axis minimum limit
@@ -607,18 +641,19 @@ def goes_plot(goes_data,sTime=None,eTime=None,var_tags = ['B_AVG'],labels=None,y
     title   = ' '.join([md['institution'],md['satellite_id'],'-',md['instrument']])
 #    ax.set_title(title)
 
-def __split_sci(value):
+def __split_sci(value: float) -> tuple[float, float]:
     """Split scientific notation into (coefficient,power).
+
     This is a private function that currently only works on scalars.
 
     Parameters
     ----------
-    value :
+    value
         numerical value
 
     Returns
     -------
-    coefficient : float
+    (coefficient, power)
 
     Written by Nathaniel Frissell 2014 Sept 07
 
@@ -628,7 +663,7 @@ def __split_sci(value):
     return (float(s[0]),float(s[1]))
 
 
-def classify_flare(value):
+def classify_flare(value: float) -> str:
     """Convert GOES X-Ray flux into a string flare classification.
     You should use the 1-8 Angstrom band for classification [1] 
     (B_AVG in the NOAA data files).
@@ -639,12 +674,12 @@ def classify_flare(value):
 
     Parameters
     ----------
-    value :
+    value
         numerical value of the GOES 1-8 Angstrom band X-Ray Flux in W/m^2.
 
     Returns
     -------
-    flare_class : string
+    flare_class
         class of solar flare
 
     References
@@ -677,7 +712,7 @@ def classify_flare(value):
     return flare_class
 
 
-def flare_value(flare_class):
+def flare_value(flare_class: str) -> float:
     """Convert a string solar flare class [1] into the lower bound in W/m**2 of the 
     1-8 Angstrom X-Ray Band for the GOES Spacecraft.
 
@@ -687,12 +722,12 @@ def flare_value(flare_class):
 
     Parameters
     ----------
-    flare_class : string
+    flare_class
         class of solar flare (e.g. 'X10')
 
     Returns
     -------
-    value : float
+    value
         numerical value of the GOES 1-8 Angstrom band X-Ray Flux in W/m**2.
 
     References
@@ -714,7 +749,14 @@ def flare_value(flare_class):
     return value
 
 
-def find_flares(goes_data,window_minutes=60,min_class='X1',sTime=None,eTime=None,tmp_dir='data'):
+def find_flares(
+    goes_data: dict,
+    window_minutes: int = 60,
+    min_class: str = 'X1',
+    sTime: Optional[datetime.datetime] = None,
+    eTime: Optional[datetime.datetime] = None,
+    tmp_dir: str = 'data'
+) -> pd.DataFrame:
     """Find flares of a minimum class in a GOES data dict created by read_goes().
     This works with 1-minute averaged GOES data.
 
@@ -722,25 +764,26 @@ def find_flares(goes_data,window_minutes=60,min_class='X1',sTime=None,eTime=None
 
     Parameters
     ----------
-    goes_data : dict
+    goes_data
         GOES data dict created by read_goes()
-    window_minutes : Optional[int]
+    window_minutes
         Window size to look for peaks in minutes.
         I.E., if window_minutes=60, then no more than 1 flare will be found 
         inside of a 60 minute window.
-    min_class : Optional[str]
+    min_class
         Only flares >= to this class will be reported. Use a
         format such as 'M2.3', 'X1', etc.
-    sTime : Optional[datetime.datetime]
+    sTime
         Only report flares at or after this time.  If None, the earliest
         available time in goes_data will be used.
-    eTime : Optional[datetime.datetime]
+    eTime
         Only report flares before this time.  If None, the last
         available time in goes_data will be used.
 
     Returns
     -------
-    flares : Pandas dataframe listing:
+    flares
+        A Pandas dataframe listing:
         * time of flares
         * GOES 1-8 Angstrom band x-ray flux
         * Classification of flare
