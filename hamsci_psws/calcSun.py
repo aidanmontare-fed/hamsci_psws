@@ -19,6 +19,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from numpy.typing import NDArray
+    FloatArray = NDArray[numpy.float_]
 
 
 def calcTimeJulianCent( jd : float ) -> float:
@@ -60,8 +62,8 @@ def calcSunEqOfCenter( t : float ) -> float:
     sinm = numpy.sin(mrad)
     sin2m = numpy.sin(mrad+mrad)
     sin3m = numpy.sin(mrad+mrad+mrad)
-    C = sinm * (1.914602 - t * (0.004817 + 0.000014 * t)) + sin2m * (0.019993 - 0.000101 * t) + sin3m * 0.000289
-    return C # in degrees
+    C = sinm * (1.914602 - t * (0.004817 + 0.000014 * t)) + sin2m * (0.019993 - 0.000101 * t) + sin3m * 0.000289 # in degrees
+    return C # type: ignore[no-any-return]  # for some reason mypy doesn't recognize type of numpy functions
 
 
 def calcSunTrueLong( t : float ) -> float:
@@ -87,8 +89,8 @@ def calcSunRadVector( t : float) -> float:
     """
     v = calcSunTrueAnomaly(t)
     e = calcEccentricityEarthOrbit(t)
-    R = (1.000001018 * (1. - e * e)) / ( 1. + e * numpy.cos( numpy.radians(v) ) )
-    return R # n AUs
+    R = (1.000001018 * (1. - e * e)) / ( 1. + e * numpy.cos( numpy.radians(v) ) ) # n AUs
+    return R # type: ignore[no-any-return]  # for some reason mypy doesn't recognize type of numpy functions
 
 
 def calcSunApparentLong( t : float) -> float:
@@ -96,8 +98,8 @@ def calcSunApparentLong( t : float) -> float:
     """
     o = calcSunTrueLong(t)
     omega = 125.04 - 1934.136 * t
-    SunLong = o - 0.00569 - 0.00478 * numpy.sin(numpy.radians(omega))
-    return SunLong # in degrees
+    SunLong = o - 0.00569 - 0.00478 * numpy.sin(numpy.radians(omega)) # in degrees  
+    return SunLong # type: ignore[no-any-return]  # for some reason mypy doesn't recognize type of numpy functions
 
 
 def calcMeanObliquityOfEcliptic( t : float ) -> float:
@@ -113,8 +115,8 @@ def calcObliquityCorrection( t : float) -> float:
     """
     e0 = calcMeanObliquityOfEcliptic(t)
     omega = 125.04 - 1934.136 * t
-    e = e0 + 0.00256 * numpy.cos(numpy.radians(omega))
-    return e # in degrees
+    e = e0 + 0.00256 * numpy.cos(numpy.radians(omega)) # in degrees
+    return e # type: ignore[no-any-return]  # for some reason mypy doesn't recognize type of numpy functions
 
 
 def calcSunRtAscension( t : float) -> float:
@@ -124,8 +126,8 @@ def calcSunRtAscension( t : float) -> float:
     SunLong = calcSunApparentLong(t)
     tananum = ( numpy.cos(numpy.radians(e)) * numpy.sin(numpy.radians(SunLong)) )
     tanadenom = numpy.cos(numpy.radians(SunLong))
-    alpha = numpy.degrees(numpy.arctan2(tananum, tanadenom))
-    return alpha # in degrees
+    alpha = numpy.degrees(numpy.arctan2(tananum, tanadenom)) # in degrees
+    return alpha # type: ignore[no-any-return]  # for some reason mypy doesn't recognize type of numpy functions
 
 
 def calcSunDeclination( t : float) -> float:
@@ -134,8 +136,8 @@ def calcSunDeclination( t : float) -> float:
     e = calcObliquityCorrection(t)
     SunLong = calcSunApparentLong(t)
     sint = numpy.sin(numpy.radians(e)) * numpy.sin(numpy.radians(SunLong))
-    theta = numpy.degrees(numpy.arcsin(sint))
-    return theta # in degrees
+    theta = numpy.degrees(numpy.arcsin(sint)) # in degrees
+    return theta # type: ignore[no-any-return]  # for some reason mypy doesn't recognize type of numpy functions
 
 
 def calcEquationOfTime( t : float) -> float:
@@ -154,18 +156,20 @@ def calcEquationOfTime( t : float) -> float:
     sin4l0 = numpy.sin(numpy.radians(4.0 * l0))
     sin2m  = numpy.sin(numpy.radians(2.0 * m))
 
-    Etime = y * sin2l0 - 2.0 * e * sinm + 4.0 * e * y * sinm * cos2l0 - 0.5 * y * y * sin4l0 - 1.25 * e * e * sin2m
-    return numpy.degrees(Etime*4.0) # in minutes of time
+    Etime = y * sin2l0 - 2.0 * e * sinm + 4.0 * e * y * sinm * cos2l0 - 0.5 * y * y * sin4l0 - 1.25 * e * e * sin2m # in minutes of time
+    return numpy.degrees(Etime*4.0) # type: ignore[no-any-return]  # for some reason mypy doesn't recognize type of numpy functions
 
 
 def calcHourAngleSunrise( lat : float, solarDec : float) -> float:
     """Calculate the hour angle of the sun at sunrise for the latitude (in radians)
+
+    For sunset, use the negative of the return value.
     """
     latRad = numpy.radians(lat)
     sdRad  = numpy.radians(solarDec)
     HAarg = numpy.cos(numpy.radians(90.833)) / ( numpy.cos(latRad)*numpy.cos(sdRad) ) - numpy.tan(latRad) * numpy.tan(sdRad)
-    HA = numpy.arccos(HAarg)
-    return HA # in radians (for sunset, use -HA)
+    HA = numpy.arccos(HAarg) # in radians (for sunset, use -HA)
+    return HA # type: ignore[no-any-return]  # for some reason mypy doesn't recognize type of numpy functions
 
 
 def calcAzEl( t: float, localtime: float, latitude: float, longitude: float, zone: float ) -> tuple[float, float]:
@@ -296,7 +300,13 @@ def calcSunRiseSet( jd: float, latitude: float, longitude: float, timezone: floa
     return rtimeLocal, stimeLocal
 
 
-def calcTerminator( date: datetime.datetime, latitudes: Sequence[float], longitudes: Sequence[float] ,nlats: int = 50,nlons: int = 50 ) -> tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+def calcTerminator(
+    date: datetime.datetime,
+    latitudes: Sequence[float],
+    longitudes: Sequence[float],
+    nlats: int = 50,
+    nlons: int = 50
+) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
     """Calculate terminator position and solar zenith angle for a given julian date-time 
     within latitude/longitude limits
     
@@ -341,4 +351,4 @@ def getJD(date: datetime.datetime) -> float:
     B = 2. - A + numpy.floor(A/4.)
     jd = numpy.floor(365.25*(date.year + 4716.)) + numpy.floor(30.6001*(date.month+1)) + date.day + B - 1524.5
     jd = jd + date.hour/24.0 + date.minute/1440.0 + date.second/86400.0
-    return jd
+    return jd # type: ignore[no-any-return]  # for some reason mypy doesn't recognize type of numpy functions

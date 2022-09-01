@@ -29,3 +29,4 @@ remove the short titles from the table in the api docs
 get table in goes.py working in docs
 get lists separated without bullets working in docs
 fix formating in many doc strings
+sphinx api docs show what a type alias means
