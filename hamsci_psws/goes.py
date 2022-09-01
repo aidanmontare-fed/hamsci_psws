@@ -21,14 +21,15 @@ A module for working with GOES data.
 Module Author:: N.A. Frissell, 6 Sept 2014
     Updated 14 August 2022
 
-Functions
+Key Functions
 --------------------------------------------------------
 read_goes       download GOES data
 goes_plot       plot GOES data
 classify_flare  convert GOES data to string classifier
 flare_value     convert string classifier to lower bound
 find_flares     find flares in a certain class
---------------------------------------------------------
+--------------- ----------------------------------------
+
 """
 
 import logging

@@ -16,8 +16,13 @@ def solar_time(datetime_utc,lon):
     """
     Convert UTC datetime object into Local Mean Time.
 
-    datetime_utc: Datetime object in UTC.
-    lon:          Geographic longitude of observation.
+    Parameters
+    ----------
+    datetime_utc
+        Datetime object in UTC.
+    lon
+        Geographic longitude of observation.
+
     """
     lmt = datetime_utc + datetime.timedelta(hours=(lon/15.))
     lmt = lmt.replace(tzinfo=None)
@@ -27,6 +32,8 @@ def utc_time(datetime_lmt,lon):
     """
     Convert datetime object from Local Mean Time to UTC.
 
+    Parameters
+    ----------
     datetime_lmt: Datetime object in Local Mean Time.
     lon:          Geographic longitude of observation.
     """
@@ -39,6 +46,8 @@ def sunAzEl(dates,lat,lon):
     Return the azimuths and elevation angles of the Sun for
     a list of UTC dates and lat/lon location.
 
+    Parameters
+    ----------
     dates:  List of UTC datetime objects.
     lat:    Geographic latitude of location.
     lon:    Geographic longitude of location.
@@ -58,6 +67,8 @@ def add_terminator(sTime,eTime,lat,lon,ax,color='0.7',alpha=0.3,xkey='UTC',
     """
     Shade the nighttime region on a time series plot.
 
+    Parameters
+    ----------
     sTime:   UTC start time of time series plot in datetime.datetime format
     eTime:   UTC end time of time series plot in datetime.datetime format
     lat:     latitude for solar terminator calculation

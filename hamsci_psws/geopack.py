@@ -3,24 +3,10 @@
 # Full license can be found in LICENSE.txt
 """geoPack module
 
-Functions
----------
-geodToGeoc          converts from geodetic to geocentric (and vice-versa)
-geodToGeocAzEl      converts azimuth and elevation from geodetic to geocentric (and vice-versa)
-gspToGcar           converts global spherical coordinates to global cartesian coordinates (and vice-versa)
-gcarToLcar          converts from global cartesian coordinates to local cartesian coordinates (and vice-versa)
-lspToLcar           converts from local spherical coordinates to local cartesian coordinates (and vice-versa)
-calcDistPnt         calculates the coordines|distance,elevation,azimuth of a point given a point of origin and 
-        distance,elevation,azimuth|distant point coordinates
-greatCircleMove     Calculates the coordinates of an end point along a great circle path 
-        given the original coordinates, distance, azimuth, and altitude.
-greatCircleAzm      Calculates the azimuth from the coordinates of a start point to and end point
-        along a great circle path.
-greatCircleDist     Calculates the distance in radians along a great circle path between two points.
-
 References
 ----------
 Based on J.M. Ruohoniemi's geopack
+
 Based on R.J. Barnes radar.pro
 
 """
@@ -72,7 +58,9 @@ def geodToGeoc(lat,lon,inverse=False):
 
 
 def geodToGeocAzEl(lat,lon,az,el,inverse=False):
-    """Converts pointing azimuth and elevation measured with respect to the local horizon 
+    """Converts azimuth and elevation from geodetic to geocentric (and vice-versa)
+    
+    Converts pointing azimuth and elevation measured with respect to the local horizon 
     to azimuth and elevation with respect to the horizon defined by the plane perpendicular 
     to the Earth-centered radial vector drawn through a user defined point.
 
@@ -148,10 +136,12 @@ def geodToGeocAzEl(lat,lon,az,el,inverse=False):
 
 def gspToGcar(X, Y, Z, inverse=False):
     """Converts a position from global spherical (geocentric) to global cartesian (and vice-versa).
+
     The global cartesian coordinate system is defined as:
         - origin: center of the Earth
         - X axis in the equatorial plane and through the prime meridian.
         - Z axis in the direction of the rotational axis and through the North pole
+
     The meaning of the input (X,Y,Z) depends on the direction of the conversion 
     (to global cartesian or to global spherical).
 
@@ -193,15 +183,18 @@ def gspToGcar(X, Y, Z, inverse=False):
 
 def gcarToLcar(X, Y, Z, lat, lon, rho , inverse=False):
     """Converts a position from global cartesian to local cartesian (and vice-versa).
+
     The global cartesian coordinate system is defined as:
         - origin: center of the Earth
         - Z axis in the direction of the rotational axis and through the North pole
         - X axis in the equatorial plane and through the prime meridian.
+
     The local cartesian coordinate system is defined as:
         - origin: local position
         - X: East
         - Y: North
         - Z: up
+
     The meaning of the input (X,Y,Z) depends on the direction of the conversion 
     (to global cartesian or to global spherical).
 
@@ -272,16 +265,19 @@ def gcarToLcar(X, Y, Z, lat, lon, rho , inverse=False):
 
 def lspToLcar(X, Y, Z, inverse=False):
     """Converts a position from local spherical to local cartesian (and vice-versa).
+
     The local spherical coordinate system is defined as:
         - origin: local position
         - azimuth (with respect to North)
         - Elevation (with respect to horizon)
         - Altitude
+
     The local cartesian coordinate system is defined as:
         - origin: local position
         - X: East
         - Y: North
         - Z: up
+        
     The meaning of the input (X,Y,Z) depends on the direction of the conversion 
     (to global cartesian or to global spherical).
 
@@ -331,12 +327,15 @@ def lspToLcar(X, Y, Z, inverse=False):
 def calcDistPnt(origLat, origLon, origAlt, \
             dist=None, el=None, az=None, \
             distLat=None, distLon=None, distAlt=None):
-    """Calculate: 
+    """Calculates the coordinates or distance,elevation,azimuth of a point given a point of origin and distance,elevation,azimuth or distant point coordinates
+    
+    Calculate: 
         - the coordinates and altitude of a distant point given a point of origin, distance, azimuth and elevation, or 
         - the coordinates and distance of a distant point given a point of origin, altitude, azimuth and elevation, or 
         - the distance, azimuth and elevation between a point of origin and a distant point or 
         - the distance, azimuth between a point of origin and a distant point and the altitude of said distant point given 
-        a point of origin, distant point and elevation angle.
+          a point of origin, distant point and elevation angle.
+
     Input/output is in geodetic coordinates, distances are in km and angles in degrees.
 
     Parameters
@@ -518,7 +517,7 @@ def greatCircleMove(origLat, origLon, dist, az, alt=0,Re=6371.):
 
 
 def greatCircleAzm(lat1,lon1,lat2,lon2):
-    """Calculates the azimuth from the coordinates of a start point to and end point
+    """Calculates the azimuth from the coordinates of a start point to an end point
     along a great circle path.
 
     Parameters
