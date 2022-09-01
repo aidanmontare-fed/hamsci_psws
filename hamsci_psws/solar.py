@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import matplotlib.axis
+    from numpy.typing import NDArray
 
 def solar_time(datetime_utc: datetime.datetime, lon: float) -> datetime.datetime:
     """
@@ -126,9 +127,10 @@ def add_terminator(
 
     azs, els = sunAzEl(dates,lat,lon)
 
-    els     = np.array(els)
-    night   = els < 90.
-    night   = night.astype(np.int)
+    # reveal_type(els)
+    els: NDArray[np.float_] = np.array(els) # type: ignore[no-redef]  # We reuse the els variable here with a 
+    night   = els < 90. # type: ignore[operator]  # not sure why mypy doesn't like this, this is valid
+    night   = night.astype(np.int_)
     term    = np.diff(night)
 
     # Determine the indices and times where sunrise and sunset occur.
