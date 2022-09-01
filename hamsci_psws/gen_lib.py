@@ -1,9 +1,20 @@
+from __future__ import annotations
+
 import os
 import shutil
 import collections
 import datetime
+from os import PathLike
 
-def get_iterable(x):
+from typing import TYPE_CHECKING, Any, Iterable, TypeAlias
+
+if TYPE_CHECKING:
+    import matplotlib.axis
+
+StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]  # verbatim from typeshed
+
+
+def get_iterable(x: Any) -> Iterable[Any]:
     """
     Guarantee that a variable is iterable.
 
@@ -15,7 +26,7 @@ def get_iterable(x):
     else:
         return (x,)
 
-def make_dir(path,clear=False):
+def make_dir(path: StrOrBytesPath, clear: bool = False) -> None:
     """
     Make a directory. Returns no error if it already exists or the process fails.
 
@@ -37,7 +48,7 @@ def make_dir(path,clear=False):
     except:
         pass
 
-def adjust_axes(ax_0,ax_1):
+def adjust_axes(ax_0: matplotlib.axis.Axis, ax_1: matplotlib.axis.Axis) -> None:
     """
     Align the right-hand position of ax_0 to match the right-hand position of ax_1.
     This is useful if ax_1 has a colorbar and ax_0 does not, and you want to make
@@ -56,14 +67,14 @@ def adjust_axes(ax_0,ax_1):
     ax_0.set_position(ax_0_pos)
 
 
-def datetime2date(dt):
+def datetime2date(dt: datetime.datetime) -> datetime.datetime:
     """
     Return a datetime object stripped of its time information.
     """
     date    = datetime.datetime(dt.year,dt.month,dt.day)
     return date
 
-def decimal_hours(dt):
+def decimal_hours(dt: datetime.datetime) -> float:
     """
     Return the decimal hours of a datetime object.
     """
