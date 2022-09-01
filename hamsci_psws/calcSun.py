@@ -156,7 +156,7 @@ def calcHourAngleSunrise( lat, solarDec ):
     latRad = numpy.radians(lat)
     sdRad  = numpy.radians(solarDec)
     HAarg = numpy.cos(numpy.radians(90.833)) / ( numpy.cos(latRad)*numpy.cos(sdRad) ) - numpy.tan(latRad) * numpy.tan(sdRad)
-    HA = numpy.arccos(HAarg);
+    HA = numpy.arccos(HAarg)
     return HA # in radians (for sunset, use -HA)
 
 
