@@ -10,17 +10,25 @@ Translated to Python by Sebastien de Larquier
 
 """
 
+from __future__ import annotations
+
+import datetime
 import numpy
 
+from typing import TYPE_CHECKING
 
-def calcTimeJulianCent( jd ):
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+
+def calcTimeJulianCent( jd : float ) -> float:
     """Convert Julian Day to centuries since J2000.0.
     """
     T = (jd - 2451545.0)/36525.0
     return T
 
 
-def calcGeomMeanLongSun( t ):
+def calcGeomMeanLongSun( t : float ) -> float:
     """Calculate the Geometric Mean Longitude of the Sun (in degrees)
     """
     L0 = 280.46646 + t * ( 36000.76983 + t*0.0003032 )
@@ -31,21 +39,21 @@ def calcGeomMeanLongSun( t ):
     return L0 # in degrees
 
 
-def calcGeomMeanAnomalySun( t ):
+def calcGeomMeanAnomalySun( t : float ) -> float:
     """Calculate the Geometric Mean Anomaly of the Sun (in degrees)
     """
     M = 357.52911 + t * ( 35999.05029 - 0.0001537 * t)
     return M # in degrees
 
 
-def calcEccentricityEarthOrbit( t ):
+def calcEccentricityEarthOrbit( t : float ) -> float:
     """Calculate the eccentricity of earth's orbit (unitless)
     """
     e = 0.016708634 - t * ( 0.000042037 + 0.0000001267 * t)
     return e # unitless
 
 
-def calcSunEqOfCenter( t ):
+def calcSunEqOfCenter( t : float ) -> float:
     """Calculate the equation of center for the sun (in degrees)
     """
     mrad = numpy.radians(calcGeomMeanAnomalySun(t))
@@ -56,7 +64,7 @@ def calcSunEqOfCenter( t ):
     return C # in degrees
 
 
-def calcSunTrueLong( t ):
+def calcSunTrueLong( t : float ) -> float:
     """Calculate the true longitude of the sun (in degrees)
     """
     l0 = calcGeomMeanLongSun(t)
@@ -65,7 +73,7 @@ def calcSunTrueLong( t ):
     return O # in degrees
 
 
-def calcSunTrueAnomaly( t ):
+def calcSunTrueAnomaly( t : float) -> float:
     """Calculate the true anamoly of the sun (in degrees)
     """
     m = calcGeomMeanAnomalySun(t)
@@ -74,7 +82,7 @@ def calcSunTrueAnomaly( t ):
     return v # in degrees
 
 
-def calcSunRadVector( t ):
+def calcSunRadVector( t : float) -> float:
     """Calculate the distance to the sun in AU (in degrees)
     """
     v = calcSunTrueAnomaly(t)
@@ -83,7 +91,7 @@ def calcSunRadVector( t ):
     return R # n AUs
 
 
-def calcSunApparentLong( t ):
+def calcSunApparentLong( t : float) -> float:
     """Calculate the apparent longitude of the sun (in degrees)
     """
     o = calcSunTrueLong(t)
@@ -92,7 +100,7 @@ def calcSunApparentLong( t ):
     return SunLong # in degrees
 
 
-def calcMeanObliquityOfEcliptic( t ):
+def calcMeanObliquityOfEcliptic( t : float ) -> float:
     """Calculate the mean obliquity of the ecliptic (in degrees)
     """
     seconds = 21.448 - t*(46.8150 + t*(0.00059 - t*(0.001813)))
@@ -100,7 +108,7 @@ def calcMeanObliquityOfEcliptic( t ):
     return e0 # in degrees
 
 
-def calcObliquityCorrection( t ):
+def calcObliquityCorrection( t : float) -> float:
     """Calculate the corrected obliquity of the ecliptic (in degrees)
     """
     e0 = calcMeanObliquityOfEcliptic(t)
@@ -109,7 +117,7 @@ def calcObliquityCorrection( t ):
     return e # in degrees
 
 
-def calcSunRtAscension( t ):
+def calcSunRtAscension( t : float) -> float:
     """Calculate the right ascension of the sun (in degrees)
     """
     e = calcObliquityCorrection(t)
@@ -120,7 +128,7 @@ def calcSunRtAscension( t ):
     return alpha # in degrees
 
 
-def calcSunDeclination( t ):
+def calcSunDeclination( t : float) -> float:
     """Calculate the declination of the sun (in degrees)
     """
     e = calcObliquityCorrection(t)
@@ -130,7 +138,7 @@ def calcSunDeclination( t ):
     return theta # in degrees
 
 
-def calcEquationOfTime( t ):
+def calcEquationOfTime( t : float) -> float:
     """Calculate the difference between true solar time and mean solar time (output: equation of time in minutes of time)  
     """
     epsilon = calcObliquityCorrection(t)
@@ -150,7 +158,7 @@ def calcEquationOfTime( t ):
     return numpy.degrees(Etime*4.0) # in minutes of time
 
 
-def calcHourAngleSunrise( lat, solarDec ):
+def calcHourAngleSunrise( lat : float, solarDec : float) -> float:
     """Calculate the hour angle of the sun at sunrise for the latitude (in radians)
     """
     latRad = numpy.radians(lat)
@@ -160,7 +168,7 @@ def calcHourAngleSunrise( lat, solarDec ):
     return HA # in radians (for sunset, use -HA)
 
 
-def calcAzEl( t, localtime, latitude, longitude, zone ):
+def calcAzEl( t: float, localtime: float, latitude: float, longitude: float, zone: float ) -> tuple[float, float]:
     """Calculate sun azimuth and zenith angle
     """
     eqTime = calcEquationOfTime(t)
@@ -223,7 +231,7 @@ def calcAzEl( t, localtime, latitude, longitude, zone ):
     return azimuth, solarZen
 
 
-def calcSolNoonUTC( jd, longitude ):
+def calcSolNoonUTC( jd : float, longitude : float ) -> float:
     """Calculate time of solar noon the given day at the given location on earth (in minute since 0 UTC)
     """
     tnoon = calcTimeJulianCent(jd)
@@ -232,7 +240,7 @@ def calcSolNoonUTC( jd, longitude ):
     return solNoonUTC
 
 
-def calcSolNoon( jd, longitude, timezone, dst ):
+def calcSolNoon( jd: float, longitude: float, timezone: float, dst: bool) -> float:
     """Calculate time of solar noon the given day at the given location on earth (in minute)
     """
     timeUTC    = calcSolNoonUTC(jd, longitude)
@@ -243,7 +251,7 @@ def calcSolNoon( jd, longitude, timezone, dst ):
     return solNoonLocal
 
 
-def calcSunRiseSetUTC( jd, latitude, longitude ):
+def calcSunRiseSetUTC( jd : float, latitude: float, longitude : float) -> tuple[float, float]:
     """Calculate sunrise/sunset the given day at the given location on earth (in minute since 0 UTC)
     """
     t = calcTimeJulianCent(jd)
@@ -260,7 +268,7 @@ def calcSunRiseSetUTC( jd, latitude, longitude ):
     return riseTimeUTC, setTimeUTC
 
 
-def calcSunRiseSet( jd, latitude, longitude, timezone, dst ):
+def calcSunRiseSet( jd: float, latitude: float, longitude: float, timezone: float, dst: float ) -> tuple[float, float]:
     """Calculate sunrise/sunset the given day at the given location on earth (in minutes)
     """
     rtimeUTC, stimeUTC = calcSunRiseSetUTC(jd, latitude, longitude)
@@ -288,7 +296,7 @@ def calcSunRiseSet( jd, latitude, longitude, timezone, dst ):
     return rtimeLocal, stimeLocal
 
 
-def calcTerminator( date, latitudes, longitudes,nlats=50,nlons=50 ):
+def calcTerminator( date: datetime.datetime, latitudes: Sequence[float], longitudes: Sequence[float] ,nlats: int = 50,nlons: int = 50 ) -> tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]:
     """Calculate terminator position and solar zenith angle for a given julian date-time 
     within latitude/longitude limits
     
@@ -319,7 +327,7 @@ def calcTerminator( date, latitudes, longitudes,nlats=50,nlons=50 ):
     return lats, lons, zen, numpy.array(term)
 
 
-def getJD(date):
+def getJD(date: datetime.datetime) -> float:
     """Calculate the julian date from a python datetime object.
     """
 
