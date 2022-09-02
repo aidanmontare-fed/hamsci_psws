@@ -33,7 +33,7 @@ find_flares     find flares in a certain class
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 logging.basicConfig(level=logging.INFO)
 import os
 import datetime
@@ -160,7 +160,254 @@ def download_url(
             logging.info('   Download ERROR.')
     return file_paths
 
-ReadGoesReturnType = dict[str, Any]
+ReadGoesReturnType = dict[str, Any] # TODO could be stricter?
+
+_myVars = {'xrsa_flag':'A_QUAL_FLAG','xrsa_num':'A_NUM_PTS','xrsa_flux':'A_AVG','xrsb_flag':'B_QUAL_FLAG','xrsb_num':'B_NUM_PTS','xrsb_flux':'B_AVG'}
+
+def _read_goes_lower_sat_numbers(sTime: datetime.datetime,
+    eTime: datetime.datetime,
+    sat_nr: int,
+    data_dir: str
+) -> ReadGoesReturnType:
+    # Use this section for downloading section for GOES satellites < 16.
+    # Determine which months of data to download.
+    ym_list     = [datetime.date(sTime.year,sTime.month,1)]
+    eMonth      = datetime.date(eTime.year,eTime.month,1)
+    while ym_list[-1] < eMonth:
+        ym_list.append(add_months(ym_list[-1]))
+
+    #rem_file    = '/sem/goes/data/avg/2014/08/goes15/netcdf/g15_xrs_1m_20140801_20140831.nc' #Example file.
+    file_paths  = []
+    for myTime in ym_list:
+
+        #Check to see if we already have a matching file...
+        local_files = glob.glob(os.path.join(data_dir,'g{sat_nr:02d}_xrs_1m_{year:d}{month:02d}*.nc'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)))
+        if len(local_files) > 0:
+            logging.info('Using locally cached file: {0}'.format(local_files[0]))
+            file_paths.append(local_files[0])
+            continue
+
+        # Build URL, download webpage.
+        url         = 'https://satdat.ngdc.noaa.gov/sem/goes/data/avg/{year:d}/{month:02d}/goes{sat_nr:d}/netcdf'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)
+        pattern     = 'g*_xrs_1m_*'
+        file_paths  = file_paths + download_url(url,pattern,data_dir)
+
+    # Load data into memory. #######################################################
+    data_dict: ReadGoesReturnType   = {}
+    data_dict['metadata']               = {}
+    data_dict['metadata']['variables']  = {}
+
+    orbit_dataframes    = []
+    xray_dataframes     = []
+    for file_path in file_paths:
+        nc = netCDF4.Dataset(file_path)
+
+        #Put metadata into dictionary.
+        fn  = os.path.basename(file_path)
+        data_dict['metadata'][fn] = {}
+        md_keys = ['NOAA_scaling_factors','archiving_agency','creation_date','end_date',
+                    'institution','instrument','originating_agency','satellite_id','start_date','title']
+        for md_key in md_keys:
+            try:
+                data_dict['metadata'][fn][md_key] = getattr(nc,md_key)
+            except:
+                pass
+
+        #Store Orbit Data
+        tt = nc.variables['time_tag_orbit']
+        jd = np.array(netCDF4.num2date(tt[:],tt.units))
+
+        orbit_vars = ['west_longitude','inclination']
+        data    = {}
+        for var in orbit_vars:
+            # Silence warning: UserWarning: WARNING: missing_value not used since it cannot be safely cast to variable data type
+            # We remove the missing_value flags later in the code, so we can ignore this warning.
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                data[var] = nc.variables[var][:]
+        
+        df_tmp = pd.DataFrame(data,index=jd)
+        orbit_dataframes.append(df_tmp)
+
+        #Store X-Ray Data
+        tt = nc.variables['time_tag']
+        jd = np.array(netCDF4.num2date(tt[:],tt.units))
+
+        data = {}
+        for var in _myVars.values():
+            # Silence warning: UserWarning: WARNING: missing_value not used since it cannot be safely cast to variable data type
+            # We remove the missing_value flags later in the code, so we can ignore this warning.
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                data[var] = nc.variables[var][:]
+        
+        df_tmp = pd.DataFrame(data,index=jd)
+        xray_dataframes.append(df_tmp)
+
+        #Store info about units
+        for var in (list(_myVars.values()) + orbit_vars):
+            data_dict['metadata']['variables'][var] = {}
+            var_info_keys = ['description','dtype','long_label','missing_value','nominal_max','nominal_min','plot_label','short_label','units']
+            for var_info_key in var_info_keys:
+                try:
+                    data_dict['metadata']['variables'][var][var_info_key] = getattr(nc.variables[var],var_info_key)
+                except:
+                    pass
+
+    # Concatenate dataframes from each file into single dataframes.
+    df_xray     = pd.concat(xray_dataframes)
+    df_orbit    = pd.concat(orbit_dataframes)
+
+    # Set -99999 to NaN.
+    keys    = ['A_AVG','B_AVG']
+    for key in keys:
+        tf  = df_xray[key]  == -99999
+        df_xray[key][tf]    = np.nan
+
+    # Strictly enforce time limits.
+    df_xray     = df_xray[np.logical_and(df_xray.index >= sTime,df_xray.index < eTime)]
+    df_orbit    = df_orbit[np.logical_and(df_orbit.index >= sTime,df_orbit.index < eTime)]
+
+    df_orbit['longitude']   = -1*df_orbit['west_longitude']
+    del df_orbit['west_longitude']
+
+    df_xray = pd.concat([df_xray,df_orbit],axis=1)
+    for key in df_orbit.keys():
+        df_xray[key].fillna(method='ffill',inplace=True)
+
+    df_xray['ut_hrs']   = df_xray.index.map(ut_hours)
+    df_xray['slt_mid']  = (df_xray['ut_hrs'] + df_xray['longitude']/15.) % 24.
+
+    data_dict['xray']   = df_xray
+    data_dict['orbit']  = df_orbit
+
+    data_dict['xray'].index  = [dtGreg_to_datetime(x) for x in data_dict['xray'].index]
+    data_dict['orbit'].index = [dtGreg_to_datetime(x) for x in data_dict['orbit'].index]
+
+    return data_dict
+
+
+def _read_goes_higher_sat_numbers(
+    sTime: datetime.datetime,
+    eTime: datetime.datetime,
+    sat_nr: int,
+    data_dir: str
+) -> ReadGoesReturnType:
+    sDate = datetime.datetime(sTime.year,sTime.month,sTime.day)
+    eDate = datetime.datetime(eTime.year,eTime.month,eTime.day)
+
+    dates = [sDate]
+    while dates[-1] < eDate:
+        dates.append(dates[-1] + datetime.timedelta(days=1))
+
+    all_files_downloaded = True
+    local_files: list[str]   = []
+    missing_dates: list[datetime.datetime] = []
+    for date in dates:
+        result = glob.glob(os.path.join(data_dir,'sci_xrsf-l2-avg1m_g{sat_nr:02d}_d{year:d}{month:02d}{day:02d}*.nc'.format(year=date.year,month=date.month,day=date.day,sat_nr=sat_nr)))
+
+        if len(result) > 0:
+            local_files = local_files + result
+        else:
+            all_files_downloaded = False
+            missing_dates.append(date)
+
+    if all_files_downloaded:
+        logging.info('Using locally cached files for {!s} - {!s}.'.format(sTime.strftime('%Y %b %d'),eTime.strftime('%Y %b %d')))
+        file_paths = local_files
+    else:
+        yrMonths    = list(set([(x.year,x.month) for x in dates])) # Find unique months.
+        file_paths  = []
+        for year,month in yrMonths:
+            #url        = 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/xrsf-l2-avg1m_science/2019/01/'
+            url         = 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes{sat_nr:d}/l2/data/xrsf-l2-avg1m_science/{year:d}/{month:02d}/'.format(year=year,month=month,sat_nr=sat_nr)
+            pattern     = 'sci_xrsf-l2-avg1m*.nc'
+            file_paths  = file_paths + download_url(url,pattern,data_dir,sTime=sTime,eTime=eTime)
+
+    # Load data into memory. #######################################################
+    data_dict: ReadGoesReturnType   = {}
+    data_dict['metadata']               = {}
+    data_dict['metadata']['variables']  = {}
+
+    xray_dataframes     = []
+    for file_path in file_paths:
+        nc = netCDF4.Dataset(file_path)
+
+        #Put metadata into dictionary.
+        fn  = os.path.basename(file_path)
+        data_dict['metadata'][fn] = {}
+        md_keys = ['id','NOAA_scaling_factors','archiving_agency','creation_date','end_date',
+                    'institution','instrument','originating_agency','satellite_id','start_date','title']
+
+        for md_key in md_keys:
+            try:
+                data_dict['metadata'][fn][md_key] = getattr(nc,md_key)
+            except:
+                pass
+        data_dict['metadata'][fn]['satellite_id'] = 'GOES-{:02d}'.format(sat_nr)
+
+        #Store X-Ray Data
+        tt = nc.variables['time']
+        jd = np.array(netCDF4.num2date(tt[:],tt.units))
+
+        data = {}
+        for var in _myVars.keys():
+            # Silence warning: UserWarning: WARNING: missing_value not used since it cannot be safely cast to variable data type
+            # We remove the missing_value flags later in the code, so we can ignore this warning.
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                data[var] = nc.variables[var][:]
+        
+        df_tmp = pd.DataFrame(data,index=jd)
+        xray_dataframes.append(df_tmp)
+
+        #Store info about units
+        for var,oldVar in _myVars.items():
+            data_dict['metadata']['variables'][oldVar] = {}
+            var_info_keys = ['long_name','_FillValue','valid_min','valid_max','plot_label','short_label','units']
+            for var_info_key in var_info_keys:
+                try:
+                    data_dict['metadata']['variables'][oldVar][var_info_key] = getattr(nc.variables[var],var_info_key)
+                except:
+                    pass
+
+            if oldVar == 'A_AVG':
+                data_dict['metadata']['variables'][oldVar]['short_label'] = 'xs fx'
+                data_dict['metadata']['variables'][oldVar]['long_label']  = 'x-ray (0.05-0.4 nm) irradiance'
+
+            if oldVar == 'B_AVG':
+                data_dict['metadata']['variables'][oldVar]['short_label'] = 'xl fx'
+                data_dict['metadata']['variables'][oldVar]['long_label']  = 'x-ray (0.1-0.8 nm) irradiance'
+
+    # Concatenate dataframes from each file into single dataframes.
+    df_xray     = pd.concat(xray_dataframes)
+
+    # Set Bad Data to NaN
+    keys    = [('xrsa_flux','xrsa_flag'), ('xrsb_flux','xrsb_flag')]
+    for prm_key,flag_key in keys:
+        tf  = df_xray[flag_key]  == 1 # Flag of 1 means bad data
+        df_xray.loc[tf,prm_key]    = np.nan
+
+    # Set column names to be compatible with old format GOES data.
+    df_xray     = df_xray.rename(columns=_myVars).copy()
+
+    # Strictly enforce time limits.
+    df_xray     = df_xray[np.logical_and(df_xray.index >= sTime,df_xray.index < eTime)]
+
+    if nc.orbital_slot == 'GOES-West':
+        longitude = -137.
+    elif nc.orbital_slot == 'GOES-East':
+        longitude = -75.
+
+    df_xray['ut_hrs']   = df_xray.index.map(ut_hours)
+    df_xray['slt_mid']  = (df_xray['ut_hrs'] + longitude/15.) % 24.
+
+    data_dict['xray']   = df_xray
+
+    data_dict['xray'].index  = [dtGreg_to_datetime(x) for x in data_dict['xray'].index]
+
+    return data_dict
+
 
 def read_goes(
     sTime: datetime.datetime,
@@ -216,243 +463,11 @@ def read_goes(
         pass
 
     if sat_nr < 16:
-    # Use this section for downloading section for GOES satellites < 16.
-    # Determine which months of data to download.
-        ym_list     = [datetime.date(sTime.year,sTime.month,1)]
-        eMonth      = datetime.date(eTime.year,eTime.month,1)
-        while ym_list[-1] < eMonth:
-            ym_list.append(add_months(ym_list[-1]))
-
-        #rem_file    = '/sem/goes/data/avg/2014/08/goes15/netcdf/g15_xrs_1m_20140801_20140831.nc' #Example file.
-        file_paths  = []
-        for myTime in ym_list:
-
-            #Check to see if we already have a matching file...
-            local_files = glob.glob(os.path.join(data_dir,'g{sat_nr:02d}_xrs_1m_{year:d}{month:02d}*.nc'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)))
-            if len(local_files) > 0:
-                logging.info('Using locally cached file: {0}'.format(local_files[0]))
-                file_paths.append(local_files[0])
-                continue
-
-            # Build URL, download webpage.
-            url         = 'https://satdat.ngdc.noaa.gov/sem/goes/data/avg/{year:d}/{month:02d}/goes{sat_nr:d}/netcdf'.format(year=myTime.year,month=myTime.month,sat_nr=sat_nr)
-            pattern     = 'g*_xrs_1m_*'
-            file_paths  = file_paths + download_url(url,pattern,data_dir)
-
-        # Load data into memory. #######################################################
-        df_xray     = None
-        df_orbit    = None
-
-        data_dict: dict[str, Any]   = {}
-        data_dict['metadata']               = {}
-        data_dict['metadata']['variables']  = {}
-
-        df_orbit    = []
-        df_xray     = []
-        for file_path in file_paths:
-            nc = netCDF4.Dataset(file_path)
-
-            #Put metadata into dictionary.
-            fn  = os.path.basename(file_path)
-            data_dict['metadata'][fn] = {}
-            md_keys = ['NOAA_scaling_factors','archiving_agency','creation_date','end_date',
-                       'institution','instrument','originating_agency','satellite_id','start_date','title']
-            for md_key in md_keys:
-                try:
-                    data_dict['metadata'][fn][md_key] = getattr(nc,md_key)
-                except:
-                    pass
-
-            #Store Orbit Data
-            tt = nc.variables['time_tag_orbit']
-            jd = np.array(netCDF4.num2date(tt[:],tt.units))
-
-            orbit_vars = ['west_longitude','inclination']
-            data    = {}
-            for var in orbit_vars:
-                # Silence warning: UserWarning: WARNING: missing_value not used since it cannot be safely cast to variable data type
-                # We remove the missing_value flags later in the code, so we can ignore this warning.
-                with warnings.catch_warnings():
-                    warnings.filterwarnings('ignore')
-                    data[var] = nc.variables[var][:]
-            
-            df_tmp = pd.DataFrame(data,index=jd)
-            df_orbit.append(df_tmp)
-
-            #Store X-Ray Data
-            tt = nc.variables['time_tag']
-            jd = np.array(netCDF4.num2date(tt[:],tt.units))
-
-            myVars = ['A_QUAL_FLAG','A_NUM_PTS','A_AVG','B_QUAL_FLAG','B_NUM_PTS','B_AVG']
-            data = {}
-            for var in myVars:
-                # Silence warning: UserWarning: WARNING: missing_value not used since it cannot be safely cast to variable data type
-                # We remove the missing_value flags later in the code, so we can ignore this warning.
-                with warnings.catch_warnings():
-                    warnings.filterwarnings('ignore')
-                    data[var] = nc.variables[var][:]
-            
-            df_tmp = pd.DataFrame(data,index=jd)
-            df_xray.append(df_tmp)
-
-            #Store info about units
-            for var in (myVars+orbit_vars):
-                data_dict['metadata']['variables'][var] = {}
-                var_info_keys = ['description','dtype','long_label','missing_value','nominal_max','nominal_min','plot_label','short_label','units']
-                for var_info_key in var_info_keys:
-                    try:
-                        data_dict['metadata']['variables'][var][var_info_key] = getattr(nc.variables[var],var_info_key)
-                    except:
-                        pass
-
-        # Concatenate dataframes from each file into single dataframes.
-        df_xray: pd.DataFrame     = pd.concat(df_xray) # type: ignore[no-redef]  # reuse variable name
-        df_orbit: pd.DataFrame    = pd.concat(df_orbit) # type: ignore[no-redef]  # reuse variable name # TODO should we really be doing this, or is a new variable somewhere appropriate?
-
-        # Set -99999 to NaN.
-        keys    = ['A_AVG','B_AVG']
-        reveal_type(df_xray)
-        for key in keys:
-            tf  = df_xray[key]  == -99999
-            df_xray[key][tf]    = np.nan
-
-        # Strictly enforce time limits.
-        df_xray     = df_xray[np.logical_and(df_xray.index >= sTime,df_xray.index < eTime)]
-        df_orbit    = df_orbit[np.logical_and(df_orbit.index >= sTime,df_orbit.index < eTime)]
-
-        df_orbit['longitude']   = -1*df_orbit['west_longitude']
-        del df_orbit['west_longitude']
-
-        df_xray = pd.concat([df_xray,df_orbit],axis=1)
-        for key in df_orbit.keys():
-            df_xray[key].fillna(method='ffill',inplace=True)
-
-        df_xray['ut_hrs']   = df_xray.index.map(ut_hours)
-        df_xray['slt_mid']  = (df_xray['ut_hrs'] + df_xray['longitude']/15.) % 24.
-
-        data_dict['xray']   = df_xray
-        data_dict['orbit']  = df_orbit
-
-        data_dict['xray'].index  = [dtGreg_to_datetime(x) for x in data_dict['xray'].index]
-        data_dict['orbit'].index = [dtGreg_to_datetime(x) for x in data_dict['orbit'].index]
+        func = _read_goes_lower_sat_numbers
     else:
-        sDate = datetime.datetime(sTime.year,sTime.month,sTime.day)
-        eDate = datetime.datetime(eTime.year,eTime.month,eTime.day)
+        func = _read_goes_higher_sat_numbers
 
-        dates = [sDate]
-        while dates[-1] < eDate:
-            dates.append(dates[-1] + datetime.timedelta(days=1))
-
-        all_files_downloaded = True
-        local_files   = []
-        missing_dates = []
-        for date in dates:
-            result = glob.glob(os.path.join(data_dir,'sci_xrsf-l2-avg1m_g{sat_nr:02d}_d{year:d}{month:02d}{day:02d}*.nc'.format(year=date.year,month=date.month,day=date.day,sat_nr=sat_nr)))
-
-            if len(result) > 0:
-                local_files = local_files + result
-            else:
-                all_files_downloaded = False
-                missing_dates.append(date)
-
-        if all_files_downloaded:
-            logging.info('Using locally cached files for {!s} - {!s}.'.format(sTime.strftime('%Y %b %d'),eTime.strftime('%Y %b %d')))
-            file_paths = local_files
-        else:
-            yrMonths    = list(set([(x.year,x.month) for x in dates])) # Find unique months.
-            file_paths  = []
-            for year,month in yrMonths:
-                #url        = 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/xrsf-l2-avg1m_science/2019/01/'
-                url         = 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes{sat_nr:d}/l2/data/xrsf-l2-avg1m_science/{year:d}/{month:02d}/'.format(year=year,month=month,sat_nr=sat_nr)
-                pattern     = 'sci_xrsf-l2-avg1m*.nc'
-                file_paths  = file_paths + download_url(url,pattern,data_dir,sTime=sTime,eTime=eTime)
-
-        # Load data into memory. #######################################################
-        df_xray     = None
-
-        data_dict   = {}
-        data_dict['metadata']               = {}
-        data_dict['metadata']['variables']  = {}
-
-        df_xray     = []
-        for file_path in file_paths:
-            nc = netCDF4.Dataset(file_path)
-
-            #Put metadata into dictionary.
-            fn  = os.path.basename(file_path)
-            data_dict['metadata'][fn] = {}
-            md_keys = ['id','NOAA_scaling_factors','archiving_agency','creation_date','end_date',
-                       'institution','instrument','originating_agency','satellite_id','start_date','title']
-
-            for md_key in md_keys:
-                try:
-                    data_dict['metadata'][fn][md_key] = getattr(nc,md_key)
-                except:
-                    pass
-            data_dict['metadata'][fn]['satellite_id'] = 'GOES-{:02d}'.format(sat_nr)
-
-            #Store X-Ray Data
-            tt = nc.variables['time']
-            jd = np.array(netCDF4.num2date(tt[:],tt.units))
-
-            myVars = {'xrsa_flag':'A_QUAL_FLAG','xrsa_num':'A_NUM_PTS','xrsa_flux':'A_AVG','xrsb_flag':'B_QUAL_FLAG','xrsb_num':'B_NUM_PTS','xrsb_flux':'B_AVG'}
-            data = {}
-            for var in myVars.keys():
-                # Silence warning: UserWarning: WARNING: missing_value not used since it cannot be safely cast to variable data type
-                # We remove the missing_value flags later in the code, so we can ignore this warning.
-                with warnings.catch_warnings():
-                    warnings.filterwarnings('ignore')
-                    data[var] = nc.variables[var][:]
-            
-            df_tmp = pd.DataFrame(data,index=jd)
-            df_xray.append(df_tmp)
-
-            #Store info about units
-            for var,oldVar in myVars.items():
-                data_dict['metadata']['variables'][oldVar] = {}
-                var_info_keys = ['long_name','_FillValue','valid_min','valid_max','plot_label','short_label','units']
-                for var_info_key in var_info_keys:
-                    try:
-                        data_dict['metadata']['variables'][oldVar][var_info_key] = getattr(nc.variables[var],var_info_key)
-                    except:
-                        pass
-
-                if oldVar == 'A_AVG':
-                    data_dict['metadata']['variables'][oldVar]['short_label'] = 'xs fx'
-                    data_dict['metadata']['variables'][oldVar]['long_label']  = 'x-ray (0.05-0.4 nm) irradiance'
-
-                if oldVar == 'B_AVG':
-                    data_dict['metadata']['variables'][oldVar]['short_label'] = 'xl fx'
-                    data_dict['metadata']['variables'][oldVar]['long_label']  = 'x-ray (0.1-0.8 nm) irradiance'
-
-        # Concatenate dataframes from each file into single dataframes.
-        df_xray     = pd.concat(df_xray)
-
-        # Set Bad Data to NaN
-        keys    = [('xrsa_flux','xrsa_flag'), ('xrsb_flux','xrsb_flag')]
-        for prm_key,flag_key in keys:
-            tf  = df_xray[flag_key]  == 1 # Flag of 1 means bad data
-            df_xray.loc[tf,prm_key]    = np.nan
-
-        # Set column names to be compatible with old format GOES data.
-        df_xray     = df_xray.rename(columns=myVars).copy()
-
-        # Strictly enforce time limits.
-        df_xray     = df_xray[np.logical_and(df_xray.index >= sTime,df_xray.index < eTime)]
-
-        if nc.orbital_slot == 'GOES-West':
-            longitude = -137.
-        elif nc.orbital_slot == 'GOES-East':
-            longitude = -75.
-
-        df_xray['ut_hrs']   = df_xray.index.map(ut_hours)
-        df_xray['slt_mid']  = (df_xray['ut_hrs'] + longitude/15.) % 24.
-
-        data_dict['xray']   = df_xray
-
-        data_dict['xray'].index  = [dtGreg_to_datetime(x) for x in data_dict['xray'].index]
-
-    return data_dict
+    return func(sTime, eTime, sat_nr, data_dir)
 
 def goes_plot_hr(
     goes_data: ReadGoesReturnType,
@@ -665,8 +680,7 @@ def __split_sci(value: float) -> tuple[float, float]:
     Written by Nathaniel Frissell 2014 Sept 07
 
     """
-    s   = '{0:e}'.format(value)
-    s   = s.split('e') # type: ignore[assignment]  # we reuse s here
+    s   = '{0:e}'.format(value).split('e')
     return (float(s[0]),float(s[1]))
 
 
@@ -810,7 +824,7 @@ def find_flares(
     Written by Nathaniel Frissell 2014 Sept 09
 
     """
-    df  = goes_data['xray']
+    df = cast(pd.DataFrame, goes_data['xray'])
 
     if sTime is None: sTime = df.index.min()
     if eTime is None: eTime = df.index.max()
@@ -874,16 +888,16 @@ if __name__ == '__main__':
     # Flare Classification Test ####################################################
     print('')
     print('Flare classification test.')
-    flares = ['A5.5', 'B4.0', 'X11.1']
+    flare_classes = ['A5.5', 'B4.0', 'X11.1']
     values = [5.5e-8, 4.0e-7, 11.1e-4]
 
     test_results = []
-    for flare,value in zip(flares,values):
-        print(('  Testing classify_flare() with {0} ({1:.1e} W/m**2) flare...'.format(flare,value)))
+    for flare_class,value in zip(flare_classes,values):
+        print(('  Testing classify_flare() with {0} ({1:.1e} W/m**2) flare...'.format(flare_class,value)))
 
         test_flare = classify_flare(value)
         print(('    classify_flare({0:.1e}) = {1}'.format(value,test_flare)))
-        test_results.append(flare == test_flare)
+        test_results.append(flare_class == test_flare)
 
     if np.all(test_results):
         print('CONGRATULATIONS: Test passed for classify_flare()!')
@@ -892,9 +906,9 @@ if __name__ == '__main__':
 
     print('')
     test_results = []
-    for flare,value in zip(flares,values):
-        print(('  Testing flare_value() with {0} ({1:.1e} W/m**2) flare...'.format(flare,value)))
-        test_value = flare_value(flare)
+    for flare_class,value in zip(flare_classes,values):
+        print(('  Testing flare_value() with {0} ({1:.1e} W/m**2) flare...'.format(flare_class,value)))
+        test_value = flare_value(flare_class)
         print(('    flare_value({0}) = {1:.1e}'.format(test_flare,value)))
         test_results.append(value == test_value)
 
