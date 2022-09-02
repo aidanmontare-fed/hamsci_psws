@@ -89,9 +89,17 @@ pkey = 'lat'
 prm_dict[pkey] = {}
 prm_dict[pkey]['label'] = 'Latitude'
 
+NodeType = Optional[Union[int, list[int]]]
+
 class DataInventory(object):
-    def __init__(self,nodes=None,G=None,freq=None,sTime=None,eTime=None,
-                    data_path: str = 'data',suffix: str = '.csv'):
+    def __init__(self,
+        nodes: NodeType = None,
+        G: Optional[] = None,
+        freq: Optional[] = None,
+        sTime: Optional[datetime.datetime] = None,
+        eTime: Optional[datetime.datetime] = None,
+        data_path: str = 'data',
+        suffix: str = '.csv'):
         """
         Create an inventory of availble grape1 data in the data_path.
         Inventory will be dataframe df attached to DataInventory object.
@@ -139,9 +147,15 @@ class DataInventory(object):
         # Save dataframe to object
         self.df_unfiltered = df
 
-        df = self.filter(nodes=nodes,G=G,freq=freq,sTime=sTime,eTime=eTime)
+        df = self.filter(nodes=nodes,G=G,freq=freq,sTime=sTime,eTime=eTime) # does this appear anywhere?
 
-    def filter(self,nodes: Optional[Union[int, list[int]]] = None,G: Optional[Union[str, list[str]]] = None,freq: Optional[Union[float, list[float]]] = None,sTime: Optional[datetime.datetime] = None,eTime : Optional[datetime.datetime] = None) -> pd.DataFrame:
+    def filter(self,
+        nodes: NodeType = None,
+        G: Optional[Union[str, list[str]]] = None,
+        freq: Optional[Union[float, list[float]]] = None,
+        sTime: Optional[datetime.datetime] = None,
+        eTime : Optional[datetime.datetime] = None
+    ) -> pd.DataFrame:
         """
         Filter data by parameters. The filtered results will be returned
         and stored in self.df. Unfiltered results will always be available
