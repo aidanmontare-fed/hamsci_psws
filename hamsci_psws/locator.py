@@ -1,15 +1,19 @@
 import string
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
 import numpy as np
 import pandas as pd
 
 import tqdm
+
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike, NDArray
 
 # Create string lookup lists for each of the codes.
 alpha_upper = np.char.array([x for x in string.ascii_uppercase])
 alpha_lower = np.char.array([x for x in string.ascii_lowercase])
 nr_str      = np.char.array(['{!s}'.format(x) for x in range(10)])
 
-def inx_alpha(inx: str) -> bool:
+def inx_alpha(inx: int) -> bool:
     """
     Determine if a string position should be alpha in
     a grid square.
@@ -23,7 +27,7 @@ def inx_alpha(inx: str) -> bool:
     return alpha
 
 @np.vectorize
-def grid_valid(grid: list) -> bool:
+def grid_valid(grid: str) -> bool:
     """
     Determine if a gridsquare is valid.
     """
@@ -87,7 +91,7 @@ def lookup_cty_dat(dct):
 #
 #    return df
 
-def update_df_ctydat(df,ctydat_file):
+def update_df_ctydat(df: pd.DataFrame, ctydat_file: Union[str, bytes]) -> pd.DataFrame:
     df                  = df.copy()
     CTY_country_0       = []
     CTY_prefix_0        = []
@@ -115,7 +119,7 @@ def update_df_ctydat(df,ctydat_file):
 
     return df
 
-def update_df_grid2latlon(df):
+def update_df_grid2latlon(df: pd.DataFrame) -> pd.DataFrame:
     print('Calculating lat/lons...')
 
     tqdm.tqdm.pandas(tqdm.tqdm,leave=True)
@@ -138,7 +142,7 @@ def update_df_grid2latlon(df):
         df.loc[result.index,lon_k] = lons
     return df
 
-def latlon2gridsquare(lat,lon,precision=6):
+def latlon2gridsquare(lat: ArrayLike, lon: ArrayLike, precision: int = 6) -> ArrayLike:
     """
     Calculates gridsquares from lat,lon pairs.
     This routine is vectorized.
@@ -180,8 +184,8 @@ def latlon2gridsquare(lat,lon,precision=6):
     zLats_rem        = zLats % container_size_lat
     zLons_rem        = zLons % container_size_lon
 
-    lat_code_inx     = np.array(np.floor(zLats_rem / subdivide_size_lat),dtype=np.int)
-    lon_code_inx     = np.array(np.floor(zLons_rem / subdivide_size_lon),dtype=np.int)
+    lat_code_inx     = np.array(np.floor(zLats_rem / subdivide_size_lat),dtype=np.int_)
+    lon_code_inx     = np.array(np.floor(zLons_rem / subdivide_size_lon),dtype=np.int_) # TODO or should it be builtins.int?
 
     lon_code  = alpha_upper[lon_code_inx]
     lat_code  = alpha_upper[lat_code_inx]
@@ -210,8 +214,8 @@ def latlon2gridsquare(lat,lon,precision=6):
         zLats_rem        = zLats_rem % container_size_lat
         zLons_rem        = zLons_rem % container_size_lon
 
-        lat_code_inx     = np.array(np.floor(zLats_rem / subdivide_size_lat),dtype=np.int)
-        lon_code_inx     = np.array(np.floor(zLons_rem / subdivide_size_lon),dtype=np.int)
+        lat_code_inx     = np.array(np.floor(zLats_rem / subdivide_size_lat),dtype=np.int_)
+        lon_code_inx     = np.array(np.floor(zLons_rem / subdivide_size_lon),dtype=np.int_)
 
         lon_code    = str_code[lon_code_inx]
         lat_code    = str_code[lat_code_inx]
@@ -226,13 +230,16 @@ def latlon2gridsquare(lat,lon,precision=6):
         
     return ret_arr
 
-gs_latlon_cache = {}
+gs_latlon_cache: dict[str, dict[str, Any]] = {} # TODO could be stricter
 gs_latlon_cache['center']       = {}
 gs_latlon_cache['lower left']   = {}
 gs_latlon_cache['upper left']   = {}
 gs_latlon_cache['upper right']  = {}
 gs_latlon_cache['lower right']  = {}
-def gs2latlon_cached(gridsquare,position='center'):
+
+PositionOptions = Literal['center', 'lower left', 'upper left', 'upper right', 'lower right']
+
+def gs2latlon_cached(gridsquare: str, position: PositionOptions = 'center') -> tuple[ArrayLike, ArrayLike]:
     result  = gs_latlon_cache[position].get(gridsquare)
     if result is None:
         try:
@@ -242,7 +249,7 @@ def gs2latlon_cached(gridsquare,position='center'):
         gs_latlon_cache[position][gridsquare] = result
     return result
 
-def gridsquare2latlon(gridsquare,position='center',new_precision=None):
+def gridsquare2latlon(gridsquare: ArrayLike, position: PositionOptions = 'center', new_precision: Optional[int] = None) -> tuple[ArrayLike, ArrayLike]:
     """
     Calculates lat,lon pairs from gridsquares.
     This routine is vectorized.
@@ -306,7 +313,7 @@ def gridsquare2latlon(gridsquare,position='center',new_precision=None):
                     pattern = '55mm'
 
                 dpres   = new_precision - len(gs)
-                nPatt   = np.ceil(dpres / len(pattern)).astype(np.int)
+                nPatt   = np.ceil(dpres / len(pattern)).astype(np.int_)
 
                 gs_2[gs_inx] = (gs + nPatt*pattern)[:new_precision]
 
@@ -332,14 +339,14 @@ def gridsquare2latlon(gridsquare,position='center',new_precision=None):
         alpha = not bool(pos/2 % 2)
         
         if alpha:
-            lon_inx = np.array(alpha_pd.loc[lon_code].tolist(),dtype=np.float)
+            lon_inx = np.array(alpha_pd.loc[lon_code].tolist(),dtype=np.float_)
 
-            lat_inx = np.array(alpha_pd.loc[lat_code].tolist(),dtype=np.float)
+            lat_inx = np.array(alpha_pd.loc[lat_code].tolist(),dtype=np.float_)
             if pos != 0: base = 24.
 
         else:
-            lon_inx = np.array(lon_code,dtype=np.float)
-            lat_inx = np.array(lat_code,dtype=np.float)
+            lon_inx = np.array(lon_code,dtype=np.float_)
+            lat_inx = np.array(lat_code,dtype=np.float_)
 
             base = 10.
 
@@ -350,8 +357,8 @@ def gridsquare2latlon(gridsquare,position='center',new_precision=None):
         # Add contribution of this loop to zLat and zLon.
         # zLat --> latitude, but south pole is 0 deg
         # zLon --> longitude, but antimeridian of Greenwich is 0 deg
-        zLat += (subdivide_size_lat * lat_inx)
-        zLon += (subdivide_size_lon * lon_inx)
+        zLat += (subdivide_size_lat * lat_inx) # type: ignore[assignment]  # reuse these variables in iteration
+        zLon += (subdivide_size_lon * lon_inx) # type: ignore[assignment]
 
         # Interate to next to characters in the grid square.
         container_size_lat = subdivide_size_lat
@@ -378,8 +385,8 @@ def gridsquare2latlon(gridsquare,position='center',new_precision=None):
         lon += container_size_lon
     
     # Convert things back to include NaNs.
-    ret_lat     = np.ndarray([gs_1.size],dtype=np.float)
-    ret_lon     = np.ndarray([gs_1.size],dtype=np.float)
+    ret_lat: NDArray[np.float_]     = np.ndarray([gs_1.size],dtype=np.float_)
+    ret_lon: NDArray[np.float_]     = np.ndarray([gs_1.size],dtype=np.float_)
 
     ret_lat[:]  = np.nan
     ret_lon[:]  = np.nan
@@ -392,7 +399,7 @@ def gridsquare2latlon(gridsquare,position='center',new_precision=None):
 
     return ret_lat,ret_lon
 
-def gridsquare_grid(precision=4):
+def gridsquare_grid(precision: int = 4) -> ArrayLike:
     """
     Generate a grid of gridsquares up to an arbitrary precision.
     """
@@ -414,17 +421,16 @@ def gridsquare_grid(precision=4):
     dLat = 180./N
 
     # Calculate vectors of lats/lons for the desired precsion.
-    grid_squares = []
     lons = np.arange(0,360,dLon) - 180. + dLon/2.
     lats = np.arange(0,180,dLat) -  90. + dLat/2.
 
     # Turn the vectors into a mesh grid and calculate the grid squares.
     lats,lons = np.meshgrid(lats,lons)
-    grid_grid = latlon2gridsquare(lats,lons,precision=precision)
+    grid_grid = latlon2gridsquare(lats, lons, precision=precision)
     
     return grid_grid
 
-def grid_latlons(precision=4,position='center'):
+def grid_latlons(precision: int = 4, position: PositionOptions = 'center') -> tuple[ArrayLike, ArrayLike]:
     """
     Return a grid of gridsquare-based lat/lons.
 
