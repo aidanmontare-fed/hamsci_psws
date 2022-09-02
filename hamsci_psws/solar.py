@@ -125,11 +125,11 @@ def add_terminator(
     while dates[-1] <= eDate:
         dates.append(dates[-1] + resolution)
 
-    azs, els = sunAzEl(dates,lat,lon)
+    azs, els_ = sunAzEl(dates,lat,lon)
 
     # reveal_type(els)
-    els: NDArray[np.float_] = np.array(els) # type: ignore[no-redef]  # We reuse the els variable here with a 
-    night   = els < 90. # type: ignore[operator]  # not sure why mypy doesn't like this, this is valid
+    els     = np.array(els_)
+    night   = els < 90.
     night   = night.astype(np.int_)
     term    = np.diff(night)
 
