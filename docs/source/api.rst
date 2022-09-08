@@ -2,7 +2,7 @@ API Reference
 =============
 
 .. autosummary::
-   :toctree: _autosummary
+   :toctree: generated
    :recursive:
 
    hamsci_psws
